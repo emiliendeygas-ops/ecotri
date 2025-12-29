@@ -9,15 +9,17 @@ export default function App() {
   const [query, setQuery] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [result, setResult] = useState<SortingResult | null>(null);
-  const [location, setLocation] = useState<any>(null);
+  const [location, setLocation] = useState<{lat: number, lng: number} | null>(null);
   const [barcodeMode, setBarcodeMode] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    navigator.geolocation.getCurrentPosition(
-      p => setLocation({ lat: p.coords.latitude, lng: p.coords.longitude }),
-      err => console.error("Geolocation error:", err)
-    );
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        p => setLocation({ lat: p.coords.latitude, lng: p.coords.longitude }),
+        err => console.error("Geolocation error:", err)
+      );
+    }
   }, []);
 
   const handleProcess = async (input: any, isBarcode: boolean = false) => {
@@ -29,11 +31,12 @@ export default function App() {
       const res = await analyzeWaste(dataToProcess, isBarcode);
       if (res) {
         setResult(res);
+        // On lance les recherches complémentaires
         const [img, pts] = await Promise.all([
-          generateWasteImage(res.itemName),
-          location ? findNearbyPoints(res.bin, location.lat, location.lng) : Promise.resolve([])
+          generateWasteImage(res.itemName).catch(() => null),
+          location ? findNearbyPoints(res.bin, location.lat, location.lng).catch(() => []) : Promise.resolve([])
         ]);
-        setResult(prev => prev ? { ...prev, imageUrl: img || undefined, nearbyPoints: pts } : null);
+        setResult(prev => prev ? { ...prev, imageUrl: img || undefined, nearbyPoints: pts || [] } : null);
       }
     } catch (error) {
       console.error("Process error:", error);

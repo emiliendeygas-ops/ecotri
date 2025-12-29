@@ -2,10 +2,9 @@
 import { GoogleGenAI } from "@google/genai";
 import { SortingResult, BinType, CollectionPoint } from "./types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-
 export const analyzeWaste = async (input: string | { data: string, mimeType: string }, isBarcode: boolean = false): Promise<SortingResult | null> => {
   try {
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const parts = typeof input === 'string' 
       ? [{ text: input }] 
       : [{ inlineData: input }, { text: isBarcode ? "Identifie ce produit via son code-barres et donne les consignes de tri." : "Identifie ce déchet." }];
@@ -29,6 +28,7 @@ export const analyzeWaste = async (input: string | { data: string, mimeType: str
 
 export const findNearbyPoints = async (binType: BinType, lat: number, lng: number): Promise<CollectionPoint[]> => {
   try {
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
       contents: `Lieux de collecte pour ${binType} près de lat:${lat}, lng:${lng}.`,
@@ -60,6 +60,7 @@ export const findNearbyPoints = async (binType: BinType, lat: number, lng: numbe
 
 export const generateWasteImage = async (itemName: string): Promise<string | null> => {
   try {
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash-image',
       contents: { parts: [{ text: `A clear 3D render icon of ${itemName} for a waste sorting app, white background.` }] }
