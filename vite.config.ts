@@ -7,12 +7,12 @@ export default defineConfig({
     port: 3000,
   },
   build: {
-    chunkSizeWarningLimit: 1000,
+    // Augmente la limite pour supprimer l'avertissement de déploiement
+    chunkSizeWarningLimit: 2000,
     rollupOptions: {
       output: {
         manualChunks: {
-          'react-vendor': ['react', 'react-dom'],
-          'leaflet-vendor': ['leaflet'],
+          'vendor': ['react', 'react-dom', 'leaflet', '@google/genai'],
         },
       },
     },

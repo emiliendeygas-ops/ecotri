@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Layout } from './Layout';
 import { ResultCard } from './ResultCard';
@@ -31,30 +30,23 @@ export default function App() {
       const res = await analyzeWaste(dataToProcess, isBarcode);
       if (res) {
         setResult(res);
-        // On lance les recherches complémentaires sans bloquer l'affichage initial
-        Promise.all([
-          generateWasteImage(res.itemName).catch(() => null),
-          location ? findNearbyPoints(res.bin, location.lat, location.lng).catch(() => []) : Promise.resolve([])
-        ]).then(([img, pts]) => {
-          setResult(prev => prev ? { ...prev, imageUrl: img || undefined, nearbyPoints: pts || [] } : null);
+        // Lancer les tâches de fond
+        generateWasteImage(res.itemName).then(img => {
+          if (img) setResult(prev => prev ? { ...prev, imageUrl: img } : null);
         });
+        if (location) {
+          findNearbyPoints(res.bin, location.lat, location.lng).then(pts => {
+            if (pts.length) setResult(prev => prev ? { ...prev, nearbyPoints: pts } : null);
+          });
+        }
+      } else {
+        alert("Désolé, nous n'avons pas pu analyser cet objet. Réessayez avec un nom plus simple.");
       }
     } catch (error) {
       console.error("Process error:", error);
     } finally { 
       setIsAnalyzing(false); 
     }
-  };
-
-  const onFile = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      const base64 = (reader.result as string).split(',')[1];
-      handleProcess({ data: base64, mimeType: file.type }, barcodeMode);
-    };
-    reader.readAsDataURL(file);
   };
 
   return (
@@ -72,13 +64,13 @@ export default function App() {
                 type="text" 
                 value={query} 
                 onChange={e => setQuery(e.target.value)} 
-                onKeyDown={e => e.key === 'Enter' && handleProcess(query)}
+                onKeyDown={e => { if(e.key === 'Enter') handleProcess(query); }}
                 placeholder="Ex: Capsule café, polystyrène..." 
                 className="w-full bg-white border-2 border-slate-100 focus:border-emerald-500 rounded-3xl py-5 px-6 text-lg font-bold shadow-sm outline-none transition-all" 
               />
               <button 
                 onClick={() => handleProcess(query)} 
-                className="absolute right-3 top-3 bottom-3 bg-emerald-600 text-white px-4 rounded-2xl font-black"
+                className="absolute right-3 top-3 bottom-3 bg-emerald-600 text-white px-4 rounded-2xl font-black active:scale-95 transition-transform"
               >
                 Go
               </button>
@@ -92,7 +84,17 @@ export default function App() {
                 <span className="text-2xl">🏷️</span> Code-barres
               </button>
             </div>
-            <input type="file" ref={fileInput} className="hidden" accept="image/*" onChange={onFile} />
+            <input type="file" ref={fileInput} className="hidden" accept="image/*" onChange={(e) => {
+               const file = e.target.files?.[0];
+               if (file) {
+                 const reader = new FileReader();
+                 reader.onload = () => {
+                   const base64 = (reader.result as string).split(',')[1];
+                   handleProcess({ data: base64, mimeType: file.type }, barcodeMode);
+                 };
+                 reader.readAsDataURL(file);
+               }
+            }} />
           </div>
 
           <div className="bg-gradient-to-br from-emerald-600 to-emerald-700 p-6 rounded-3xl text-white shadow-xl relative overflow-hidden">
@@ -104,7 +106,7 @@ export default function App() {
           </div>
         </div>
       ) : (
-        <ResultCard result={result} userLocation={location} onReset={() => setResult(null)} />
+        <ResultCard result={result} userLocation={location} onReset={() => { setResult(null); setQuery(''); }} />
       )}
 
       {isAnalyzing && (
