@@ -16,12 +16,13 @@ export default function App() {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         p => setLocation({ lat: p.coords.latitude, lng: p.coords.longitude }),
-        err => console.error("Geolocation error:", err)
+        err => console.warn("Géolocalisation non disponible:", err)
       );
     }
   }, []);
 
   const handleProcess = async (input: any, isBarcode: boolean = false) => {
+    // Si c'est du texte, on vérifie qu'il n'est pas vide
     const dataToProcess = typeof input === 'string' ? input.trim() : input;
     if (!dataToProcess) return;
 
@@ -30,7 +31,7 @@ export default function App() {
       const res = await analyzeWaste(dataToProcess, isBarcode);
       if (res) {
         setResult(res);
-        // Lancer les tâches de fond
+        // Tâches asynchrones secondaires (image et points de collecte)
         generateWasteImage(res.itemName).then(img => {
           if (img) setResult(prev => prev ? { ...prev, imageUrl: img } : null);
         });
@@ -40,12 +41,25 @@ export default function App() {
           });
         }
       } else {
-        alert("Désolé, nous n'avons pas pu analyser cet objet. Réessayez avec un nom plus simple.");
+        alert("Nous n'avons pas pu identifier cet objet. Essayez d'être plus précis (ex: 'Bouteille en plastique' au lieu de 'plastique').");
       }
     } catch (error) {
-      console.error("Process error:", error);
+      console.error("Erreur d'analyse:", error);
+      alert("Une erreur est survenue lors de l'analyse. Vérifiez votre connexion.");
     } finally { 
       setIsAnalyzing(false); 
+    }
+  };
+
+  const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const base64 = (reader.result as string).split(',')[1];
+        handleProcess({ data: base64, mimeType: file.type }, barcodeMode);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -65,12 +79,12 @@ export default function App() {
                 value={query} 
                 onChange={e => setQuery(e.target.value)} 
                 onKeyDown={e => { if(e.key === 'Enter') handleProcess(query); }}
-                placeholder="Ex: Capsule café, polystyrène..." 
+                placeholder="Ex: Capsule café, pot de yaourt..." 
                 className="w-full bg-white border-2 border-slate-100 focus:border-emerald-500 rounded-3xl py-5 px-6 text-lg font-bold shadow-sm outline-none transition-all" 
               />
               <button 
                 onClick={() => handleProcess(query)} 
-                className="absolute right-3 top-3 bottom-3 bg-emerald-600 text-white px-4 rounded-2xl font-black active:scale-95 transition-transform"
+                className="absolute right-3 top-3 bottom-3 bg-emerald-600 text-white px-5 rounded-2xl font-black active:scale-95 transition-transform"
               >
                 Go
               </button>
@@ -84,23 +98,13 @@ export default function App() {
                 <span className="text-2xl">🏷️</span> Code-barres
               </button>
             </div>
-            <input type="file" ref={fileInput} className="hidden" accept="image/*" onChange={(e) => {
-               const file = e.target.files?.[0];
-               if (file) {
-                 const reader = new FileReader();
-                 reader.onload = () => {
-                   const base64 = (reader.result as string).split(',')[1];
-                   handleProcess({ data: base64, mimeType: file.type }, barcodeMode);
-                 };
-                 reader.readAsDataURL(file);
-               }
-            }} />
+            <input type="file" ref={fileInput} className="hidden" accept="image/*" onChange={onFileChange} />
           </div>
 
           <div className="bg-gradient-to-br from-emerald-600 to-emerald-700 p-6 rounded-3xl text-white shadow-xl relative overflow-hidden">
              <div className="relative z-10">
-                <h3 className="font-black text-lg mb-1">Impact Zéro Déchet</h3>
-                <p className="text-xs opacity-90 font-bold leading-relaxed">Chaque tri correct est une victoire pour la planète. EcoTri vous aide à trouver des solutions durables pour chaque objet.</p>
+                <h3 className="font-black text-lg mb-1 text-white">Impact Zéro Déchet</h3>
+                <p className="text-xs opacity-90 font-bold leading-relaxed text-white">Chaque tri correct est une victoire pour la planète. EcoTri vous aide à recycler mieux.</p>
              </div>
              <div className="absolute -right-6 -bottom-6 text-6xl opacity-10 rotate-12">♻️</div>
           </div>

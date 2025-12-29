@@ -7,7 +7,7 @@ export default defineConfig({
     port: 3000,
   },
   build: {
-    // Augmente la limite pour supprimer l'avertissement de déploiement
+    // Augmente la limite pour supprimer l'avertissement de déploiement (chunk size)
     chunkSizeWarningLimit: 2000,
     rollupOptions: {
       output: {
