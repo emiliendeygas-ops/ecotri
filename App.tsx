@@ -31,12 +31,13 @@ export default function App() {
       const res = await analyzeWaste(dataToProcess, isBarcode);
       if (res) {
         setResult(res);
-        // On lance les recherches complémentaires
-        const [img, pts] = await Promise.all([
+        // On lance les recherches complémentaires sans bloquer l'affichage initial
+        Promise.all([
           generateWasteImage(res.itemName).catch(() => null),
           location ? findNearbyPoints(res.bin, location.lat, location.lng).catch(() => []) : Promise.resolve([])
-        ]);
-        setResult(prev => prev ? { ...prev, imageUrl: img || undefined, nearbyPoints: pts || [] } : null);
+        ]).then(([img, pts]) => {
+          setResult(prev => prev ? { ...prev, imageUrl: img || undefined, nearbyPoints: pts || [] } : null);
+        });
       }
     } catch (error) {
       console.error("Process error:", error);
@@ -59,7 +60,7 @@ export default function App() {
   return (
     <Layout>
       {!result ? (
-        <div className="p-8 space-y-10">
+        <div className="p-8 space-y-10 animate-slide-up">
           <div className="text-center space-y-3 mt-4">
             <h2 className="text-4xl font-black text-slate-800 tracking-tight">EcoTri 🌍</h2>
             <p className="text-slate-500 font-bold">Le tri intelligent à portée de main.</p>
@@ -84,10 +85,10 @@ export default function App() {
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <button onClick={() => { setBarcodeMode(false); fileInput.current?.click(); }} className="bg-emerald-50 p-6 rounded-3xl flex flex-col items-center gap-2 border-2 border-emerald-100 font-black text-emerald-700">
+              <button onClick={() => { setBarcodeMode(false); fileInput.current?.click(); }} className="bg-emerald-50 p-6 rounded-3xl flex flex-col items-center gap-2 border-2 border-emerald-100 font-black text-emerald-700 hover:bg-emerald-100 transition-colors">
                 <span className="text-2xl">📸</span> Photo
               </button>
-              <button onClick={() => { setBarcodeMode(true); fileInput.current?.click(); }} className="bg-indigo-50 p-6 rounded-3xl flex flex-col items-center gap-2 border-2 border-indigo-100 font-black text-indigo-700">
+              <button onClick={() => { setBarcodeMode(true); fileInput.current?.click(); }} className="bg-indigo-50 p-6 rounded-3xl flex flex-col items-center gap-2 border-2 border-indigo-100 font-black text-indigo-700 hover:bg-indigo-100 transition-colors">
                 <span className="text-2xl">🏷️</span> Code-barres
               </button>
             </div>

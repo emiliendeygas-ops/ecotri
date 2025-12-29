@@ -13,7 +13,7 @@ export const analyzeWaste = async (input: string | { data: string, mimeType: str
       model: "gemini-3-flash-preview",
       contents: { parts },
       config: {
-        systemInstruction: "Expert tri France 2025. Réponds en JSON : {itemName, bin (JAUNE|VERT|GRIS|COMPOST|DECHETTERIE|POINT_APPORT), explanation, tips[], isRecyclable, zeroWasteAlternative}.",
+        systemInstruction: "Tu es un expert en tri sélectif en France pour 2025. Identifie l'objet et renvoie OBLIGATOIREMENT un JSON avec cette structure : {itemName: string, bin: 'JAUNE'|'VERT'|'GRIS'|'COMPOST'|'DECHETTERIE'|'POINT_APPORT', explanation: string, tips: string[], isRecyclable: boolean, zeroWasteAlternative: string}.",
         responseMimeType: "application/json"
       }
     });
@@ -31,7 +31,7 @@ export const findNearbyPoints = async (binType: BinType, lat: number, lng: numbe
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
-      contents: `Lieux de collecte pour ${binType} près de lat:${lat}, lng:${lng}.`,
+      contents: `Où se trouvent les points de collecte pour le type de déchet suivant : ${binType} ? Je suis à lat:${lat}, lng:${lng}. Trouve des adresses réelles.`,
       config: { 
         tools: [{ googleMaps: {} }], 
         toolConfig: { 
@@ -46,7 +46,7 @@ export const findNearbyPoints = async (binType: BinType, lat: number, lng: numbe
     return chunks
       .filter((c: any) => c.maps)
       .map((c: any) => ({
-        name: c.maps.title,
+        name: c.maps.title || "Point de collecte",
         uri: c.maps.uri,
         lat: parseFloat(c.maps.uri.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/)?.[1] || "0"),
         lng: parseFloat(c.maps.uri.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/)?.[2] || "0")
@@ -63,7 +63,7 @@ export const generateWasteImage = async (itemName: string): Promise<string | nul
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash-image',
-      contents: { parts: [{ text: `A clear 3D render icon of ${itemName} for a waste sorting app, white background.` }] }
+      contents: { parts: [{ text: `A realistic 3D icon of a ${itemName} on a solid white background, high quality, centered.` }] }
     });
 
     const part = response.candidates?.[0]?.content?.parts.find(p => p.inlineData);
