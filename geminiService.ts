@@ -7,13 +7,13 @@ export const analyzeWaste = async (input: string | { data: string, mimeType: str
     let parts: any[] = [];
     
     if (typeof input === 'string') {
-      parts = [{ text: `Identifie précisément ce déchet et donne les consignes de tri en France (normes 2025) : "${input}"` }];
+      parts = [{ text: `Identifie ce déchet précisément et donne les consignes de tri en France : "${input}"` }];
     } else {
       parts = [
         { inlineData: input },
         { text: isBarcode 
-            ? "Identifie ce produit par son code-barres et donne les consignes de tri en France (bac, recyclabilité, explications)." 
-            : "Identifie cet objet sur l'image et donne les consignes de tri en France." 
+            ? "Identifie ce produit par son code-barres et donne les consignes de tri en France (bac, recyclabilité)." 
+            : "Identifie cet objet et donne les consignes de tri en France." 
         }
       ];
     }
@@ -22,7 +22,7 @@ export const analyzeWaste = async (input: string | { data: string, mimeType: str
       model: "gemini-3-flash-preview",
       contents: { parts },
       config: {
-        systemInstruction: "Tu es un expert en tri sélectif français. Ton rôle est d'identifier l'objet et de fournir le bac exact (JAUNE, VERT, GRIS, COMPOST, DECHETTERIE, POINT_APPORT). Réponds uniquement en JSON.",
+        systemInstruction: "Tu es un expert en tri sélectif français. Réponds exclusivement en JSON. Les bacs autorisés sont : JAUNE, VERT, GRIS, COMPOST, DECHETTERIE, POINT_APPORT.",
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
@@ -46,11 +46,14 @@ export const analyzeWaste = async (input: string | { data: string, mimeType: str
     });
 
     const text = response.text;
-    if (!text) return null;
+    if (!text) {
+      console.warn("L'IA n'a retourné aucun texte.");
+      return null;
+    }
     
     return JSON.parse(text) as SortingResult;
   } catch (e) { 
-    console.error("Gemini analysis error:", e); 
+    console.error("Erreur critique dans analyzeWaste:", e); 
     return null; 
   }
 };
@@ -60,7 +63,7 @@ export const findNearbyPoints = async (binType: BinType, lat: number, lng: numbe
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
-      contents: `Points de collecte pour déchets de type ${binType} à proximité de latitude ${lat} et longitude ${lng}.`,
+      contents: `Points de collecte pour ${binType} près de ${lat}, ${lng}.`,
       config: { 
         tools: [{ googleMaps: {} }], 
         toolConfig: { 
@@ -82,6 +85,7 @@ export const findNearbyPoints = async (binType: BinType, lat: number, lng: numbe
       }))
       .filter((p: any) => p.lat !== 0);
   } catch (e) { 
+    console.error("Erreur Maps:", e);
     return []; 
   }
 };
@@ -91,7 +95,7 @@ export const generateWasteImage = async (itemName: string): Promise<string | nul
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash-image',
-      contents: { parts: [{ text: `A clean 3D isometric icon of a ${itemName} for a waste sorting application, isolated on white background.` }] }
+      contents: { parts: [{ text: `A professional 3D isometric icon of ${itemName} on white background.` }] }
     });
 
     const part = response.candidates?.[0]?.content?.parts.find(p => p.inlineData);

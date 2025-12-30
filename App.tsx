@@ -16,7 +16,7 @@ export default function App() {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         p => setLocation({ lat: p.coords.latitude, lng: p.coords.longitude }),
-        err => console.warn("Géolocalisation non disponible:", err)
+        err => console.warn("Géolocalisation non activée:", err)
       );
     }
   }, []);
@@ -27,10 +27,12 @@ export default function App() {
 
     setIsAnalyzing(true);
     try {
+      console.log("Traitement en cours...", dataToProcess);
       const res = await analyzeWaste(dataToProcess, isBarcode);
+      
       if (res) {
         setResult(res);
-        // On déclenche les appels secondaires
+        // Appels asynchrones secondaires
         generateWasteImage(res.itemName).then(img => {
           if (img) setResult(prev => prev ? { ...prev, imageUrl: img } : null);
         });
@@ -40,11 +42,11 @@ export default function App() {
           });
         }
       } else {
-        alert("Désolé, nous n'avons pas pu identifier cet objet. Essayez d'être plus précis.");
+        alert("Désolé, l'IA n'a pas pu identifier cet objet. Essayez d'être plus spécifique (ex: 'Bouteille en plastique' plutôt que 'bouteille').");
       }
     } catch (error) {
-      console.error("Traitement error:", error);
-      alert("Erreur de communication avec l'IA. Veuillez réessayer.");
+      console.error("Erreur App.handleProcess:", error);
+      alert("Une erreur technique est survenue lors de la communication avec l'IA.");
     } finally { 
       setIsAnalyzing(false); 
     }
@@ -68,7 +70,7 @@ export default function App() {
         <div className="p-8 space-y-10 animate-slide-up">
           <div className="text-center space-y-3 mt-4">
             <h2 className="text-4xl font-black text-slate-800 tracking-tight">EcoTri 🌍</h2>
-            <p className="text-slate-500 font-bold">Le tri intelligent à portée de main.</p>
+            <p className="text-slate-500 font-bold">Le guide de tri intelligent ultra-rapide.</p>
           </div>
 
           <div className="space-y-4">
@@ -78,7 +80,7 @@ export default function App() {
                 value={query} 
                 onChange={e => setQuery(e.target.value)} 
                 onKeyDown={e => { if(e.key === 'Enter') handleProcess(query); }}
-                placeholder="Ex: Pot de yaourt, pile, mouchor..." 
+                placeholder="Ex: Pile, pot de yaourt, mouchor..." 
                 className="w-full bg-white border-2 border-slate-100 focus:border-emerald-500 rounded-3xl py-5 px-6 text-lg font-bold shadow-sm outline-none transition-all" 
               />
               <button 
@@ -104,7 +106,7 @@ export default function App() {
           <div className="bg-gradient-to-br from-emerald-600 to-emerald-700 p-6 rounded-3xl text-white shadow-xl relative overflow-hidden">
              <div className="relative z-10">
                 <h3 className="font-black text-lg mb-1 text-white">Impact Zéro Déchet</h3>
-                <p className="text-xs opacity-90 font-bold leading-relaxed text-white">Chaque tri correct aide la planète. EcoTri vous guide pour chaque objet.</p>
+                <p className="text-xs opacity-90 font-bold leading-relaxed text-white">Chaque tri correct préserve nos ressources. Utilisez EcoTri pour chaque doute.</p>
              </div>
              <div className="absolute -right-6 -bottom-6 text-6xl opacity-10 rotate-12">♻️</div>
           </div>
@@ -116,8 +118,8 @@ export default function App() {
       {isAnalyzing && (
         <div className="fixed inset-0 bg-white/90 backdrop-blur-xl z-[100] flex flex-col items-center justify-center p-8 text-center">
           <div className="w-20 h-20 border-4 border-emerald-100 border-t-emerald-600 rounded-full animate-spin mb-6" />
-          <h3 className="text-2xl font-black text-slate-800">Analyse EcoTri...</h3>
-          <p className="text-slate-400 font-bold mt-2">Nous identifions l'objet et cherchons les consignes de tri locales.</p>
+          <h3 className="text-2xl font-black text-slate-800">Analyse en cours...</h3>
+          <p className="text-slate-400 font-bold mt-2">Nous identifions l'objet pour vous donner les consignes exactes.</p>
         </div>
       )}
     </Layout>
