@@ -40,29 +40,27 @@ export const ResultCard: React.FC<{ result: SortingResult, userLocation?: any, o
               <h3 className="text-[11px] font-black text-emerald-700 uppercase tracking-widest mb-2 flex items-center gap-2">🌱 Alternative Durable</h3>
               <p className="text-emerald-900 text-sm font-bold mb-4">{result.zeroWasteAlternative}</p>
               <button className="w-full bg-emerald-600 text-white py-3 rounded-xl text-xs font-black shadow-lg hover:bg-emerald-700 transition-all">
-                En savoir plus
+                🛒 Voir l'alternative
               </button>
             </section>
           )}
 
           {result.nearbyPoints && result.nearbyPoints.length > 0 && userLocation && (
             <section className="space-y-4">
-              <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Points de collecte à proximité</h3>
+              <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Points de collecte</h3>
               <MapView points={[result.nearbyPoints[activePoint]]} userLocation={userLocation} />
               <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
                 {result.nearbyPoints.map((p, i) => (
                   <button key={i} onClick={() => setActivePoint(i)} className={`flex-shrink-0 px-4 py-2 rounded-xl text-[10px] font-black border-2 transition-all ${i === activePoint ? 'bg-emerald-600 border-emerald-600 text-white' : 'bg-white border-slate-100 text-slate-400'}`}>
-                    {p.name.length > 20 ? p.name.slice(0, 17) + '...' : p.name}
+                    {p.name.length > 15 ? p.name.slice(0, 12) + '...' : p.name}
                   </button>
                 ))}
               </div>
-              <a href={result.nearbyPoints[activePoint].uri} target="_blank" rel="noopener noreferrer" className="block text-center bg-slate-100 text-slate-600 py-3 rounded-xl font-bold text-sm hover:bg-slate-200 transition-colors">
-                Itinéraire Maps 📍
-              </a>
+              <a href={result.nearbyPoints[activePoint].uri} target="_blank" rel="noopener noreferrer" className="block text-center bg-slate-100 text-slate-600 py-3 rounded-xl font-bold text-sm">Itinéraire Maps 📍</a>
             </section>
           )}
 
-          <button onClick={onReset} className="w-full bg-emerald-600 text-white py-4 rounded-2xl font-black text-lg shadow-xl active:scale-95 transition-all">Nouveau Scan</button>
+          <button onClick={onReset} className="w-full bg-emerald-600 text-white py-4 rounded-2xl font-black text-lg shadow-xl active:scale-95 transition-all">Scanner autre chose</button>
         </div>
       </div>
     </div>

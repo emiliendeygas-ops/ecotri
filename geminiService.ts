@@ -7,12 +7,12 @@ export const analyzeWaste = async (input: string | { data: string, mimeType: str
     let parts: any[] = [];
     
     if (typeof input === 'string') {
-      parts = [{ text: `Identifie ce déchet précisément et donne les consignes de tri en France : "${input}"` }];
+      parts = [{ text: `Analyse ce déchet pour le tri en France : "${input}"` }];
     } else {
       parts = [
         { inlineData: input },
         { text: isBarcode 
-            ? "Identifie ce produit par son code-barres et donne les consignes de tri en France (bac, recyclabilité)." 
+            ? "Identifie ce produit par son code-barres et donne les consignes de tri en France." 
             : "Identifie cet objet et donne les consignes de tri en France." 
         }
       ];
@@ -46,14 +46,11 @@ export const analyzeWaste = async (input: string | { data: string, mimeType: str
     });
 
     const text = response.text;
-    if (!text) {
-      console.warn("L'IA n'a retourné aucun texte.");
-      return null;
-    }
+    if (!text) return null;
     
     return JSON.parse(text) as SortingResult;
   } catch (e) { 
-    console.error("Erreur critique dans analyzeWaste:", e); 
+    console.error("Gemini Error:", e);
     return null; 
   }
 };
@@ -85,7 +82,6 @@ export const findNearbyPoints = async (binType: BinType, lat: number, lng: numbe
       }))
       .filter((p: any) => p.lat !== 0);
   } catch (e) { 
-    console.error("Erreur Maps:", e);
     return []; 
   }
 };
