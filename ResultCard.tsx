@@ -1,11 +1,10 @@
-
 import React, { useState } from 'react';
 import { SortingResult } from './types';
 import { BIN_MAPPING } from './constants';
 import { MapView } from './MapView';
 
 export const ResultCard: React.FC<{ result: SortingResult, userLocation?: any, onReset: () => void }> = ({ result, userLocation, onReset }) => {
-  const binInfo = BIN_MAPPING[result.bin];
+  const binInfo = BIN_MAPPING[result.bin] || BIN_MAPPING['GRIS'];
   const [activePoint, setActivePoint] = useState(0);
 
   return (
@@ -27,9 +26,18 @@ export const ResultCard: React.FC<{ result: SortingResult, userLocation?: any, o
             <p className="text-slate-700 font-bold leading-relaxed">{result.explanation}</p>
           </section>
 
+          {result.tips && result.tips.length > 0 && (
+            <section>
+              <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2">Astuces</h3>
+              <ul className="list-disc list-inside text-sm text-slate-600 font-medium space-y-1">
+                {result.tips.map((tip, idx) => <li key={idx}>{tip}</li>)}
+              </ul>
+            </section>
+          )}
+
           {result.zeroWasteAlternative && (
             <section className="bg-emerald-50 p-5 rounded-2xl border border-emerald-100">
-              <h3 className="text-[11px] font-black text-emerald-700 uppercase tracking-widest mb-2 flex items-center gap-2">🌱 Alternative Zéro Déchet</h3>
+              <h3 className="text-[11px] font-black text-emerald-700 uppercase tracking-widest mb-2 flex items-center gap-2">🌱 Alternative Durable</h3>
               <p className="text-emerald-900 text-sm font-bold mb-4">{result.zeroWasteAlternative}</p>
               <button className="w-full bg-emerald-600 text-white py-3 rounded-xl text-xs font-black shadow-lg hover:bg-emerald-700 transition-all">
                 En savoir plus
@@ -49,7 +57,7 @@ export const ResultCard: React.FC<{ result: SortingResult, userLocation?: any, o
                 ))}
               </div>
               <a href={result.nearbyPoints[activePoint].uri} target="_blank" rel="noopener noreferrer" className="block text-center bg-slate-100 text-slate-600 py-3 rounded-xl font-bold text-sm hover:bg-slate-200 transition-colors">
-                Itinéraire Google Maps 📍
+                Itinéraire Maps 📍
               </a>
             </section>
           )}

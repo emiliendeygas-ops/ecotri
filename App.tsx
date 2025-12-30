@@ -30,7 +30,7 @@ export default function App() {
       const res = await analyzeWaste(dataToProcess, isBarcode);
       if (res) {
         setResult(res);
-        // Tâches de fond
+        // On déclenche les appels secondaires
         generateWasteImage(res.itemName).then(img => {
           if (img) setResult(prev => prev ? { ...prev, imageUrl: img } : null);
         });
@@ -44,9 +44,21 @@ export default function App() {
       }
     } catch (error) {
       console.error("Traitement error:", error);
-      alert("Erreur de connexion avec l'IA. Vérifiez votre clé API.");
+      alert("Erreur de communication avec l'IA. Veuillez réessayer.");
     } finally { 
       setIsAnalyzing(false); 
+    }
+  };
+
+  const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const base64 = (reader.result as string).split(',')[1];
+        handleProcess({ data: base64, mimeType: file.type }, barcodeMode);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -66,7 +78,7 @@ export default function App() {
                 value={query} 
                 onChange={e => setQuery(e.target.value)} 
                 onKeyDown={e => { if(e.key === 'Enter') handleProcess(query); }}
-                placeholder="Ex: Pot de yaourt, pile, carton..." 
+                placeholder="Ex: Pot de yaourt, pile, mouchor..." 
                 className="w-full bg-white border-2 border-slate-100 focus:border-emerald-500 rounded-3xl py-5 px-6 text-lg font-bold shadow-sm outline-none transition-all" 
               />
               <button 
@@ -86,17 +98,7 @@ export default function App() {
                 <span className="text-2xl">🏷️</span> Code-barres
               </button>
             </div>
-            <input type="file" ref={fileInput} className="hidden" accept="image/*" onChange={(e) => {
-               const file = e.target.files?.[0];
-               if (file) {
-                 const reader = new FileReader();
-                 reader.onload = () => {
-                   const base64 = (reader.result as string).split(',')[1];
-                   handleProcess({ data: base64, mimeType: file.type }, barcodeMode);
-                 };
-                 reader.readAsDataURL(file);
-               }
-            }} />
+            <input type="file" ref={fileInput} className="hidden" accept="image/*" onChange={onFileChange} />
           </div>
 
           <div className="bg-gradient-to-br from-emerald-600 to-emerald-700 p-6 rounded-3xl text-white shadow-xl relative overflow-hidden">
@@ -115,7 +117,7 @@ export default function App() {
         <div className="fixed inset-0 bg-white/90 backdrop-blur-xl z-[100] flex flex-col items-center justify-center p-8 text-center">
           <div className="w-20 h-20 border-4 border-emerald-100 border-t-emerald-600 rounded-full animate-spin mb-6" />
           <h3 className="text-2xl font-black text-slate-800">Analyse EcoTri...</h3>
-          <p className="text-slate-400 font-bold mt-2">Nous identifions l'objet et les consignes de tri locales.</p>
+          <p className="text-slate-400 font-bold mt-2">Nous identifions l'objet et cherchons les consignes de tri locales.</p>
         </div>
       )}
     </Layout>

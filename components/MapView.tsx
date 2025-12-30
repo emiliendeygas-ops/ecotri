@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef } from 'react';
 import * as L from 'leaflet';
 
@@ -6,7 +7,7 @@ export const MapView: React.FC<{ points: any[], userLocation: any }> = ({ points
   const mapInstance = useRef<any>(null);
 
   useEffect(() => {
-    if (!mapRef.current || mapInstance.current || !userLocation) return;
+    if (!mapRef.current || mapInstance.current) return;
     mapInstance.current = L.map(mapRef.current, { zoomControl: false, attributionControl: false }).setView([userLocation.lat, userLocation.lng], 14);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(mapInstance.current);
     L.circleMarker([userLocation.lat, userLocation.lng], { radius: 6, color: '#10b981', fillOpacity: 1 }).addTo(mapInstance.current);

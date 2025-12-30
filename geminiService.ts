@@ -7,12 +7,12 @@ export const analyzeWaste = async (input: string | { data: string, mimeType: str
     let parts: any[] = [];
     
     if (typeof input === 'string') {
-      parts = [{ text: `Identifie ce déchet et donne les consignes de tri en France (normes 2025) : "${input}"` }];
+      parts = [{ text: `Identifie précisément ce déchet et donne les consignes de tri en France (normes 2025) : "${input}"` }];
     } else {
       parts = [
         { inlineData: input },
         { text: isBarcode 
-            ? "Identifie ce produit par son code-barres et donne les consignes de tri en France (bac, recyclabilité)." 
+            ? "Identifie ce produit par son code-barres et donne les consignes de tri en France (bac, recyclabilité, explications)." 
             : "Identifie cet objet sur l'image et donne les consignes de tri en France." 
         }
       ];
@@ -22,7 +22,7 @@ export const analyzeWaste = async (input: string | { data: string, mimeType: str
       model: "gemini-3-flash-preview",
       contents: { parts },
       config: {
-        systemInstruction: "Tu es un expert en tri sélectif français. Identifie précisément l'objet et détermine son bac de tri.",
+        systemInstruction: "Tu es un expert en tri sélectif français. Ton rôle est d'identifier l'objet et de fournir le bac exact (JAUNE, VERT, GRIS, COMPOST, DECHETTERIE, POINT_APPORT). Réponds uniquement en JSON.",
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
@@ -30,7 +30,7 @@ export const analyzeWaste = async (input: string | { data: string, mimeType: str
             itemName: { type: Type.STRING },
             bin: { 
               type: Type.STRING, 
-              description: "Le type de bac : JAUNE, VERT, GRIS, COMPOST, DECHETTERIE, ou POINT_APPORT" 
+              description: "Une des valeurs : JAUNE, VERT, GRIS, COMPOST, DECHETTERIE, POINT_APPORT" 
             },
             explanation: { type: Type.STRING },
             tips: { 
@@ -60,7 +60,7 @@ export const findNearbyPoints = async (binType: BinType, lat: number, lng: numbe
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
-      contents: `Points de collecte pour déchets de type ${binType} près de lat:${lat}, lng:${lng}.`,
+      contents: `Points de collecte pour déchets de type ${binType} à proximité de latitude ${lat} et longitude ${lng}.`,
       config: { 
         tools: [{ googleMaps: {} }], 
         toolConfig: { 
@@ -91,7 +91,7 @@ export const generateWasteImage = async (itemName: string): Promise<string | nul
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash-image',
-      contents: { parts: [{ text: `A professional 3D isometric icon of ${itemName} on white background.` }] }
+      contents: { parts: [{ text: `A clean 3D isometric icon of a ${itemName} for a waste sorting application, isolated on white background.` }] }
     });
 
     const part = response.candidates?.[0]?.content?.parts.find(p => p.inlineData);
