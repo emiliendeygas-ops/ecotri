@@ -7,13 +7,13 @@ export const analyzeWaste = async (input: string | { data: string, mimeType: str
     let parts: any[] = [];
     
     if (typeof input === 'string') {
-      parts = [{ text: `Analyse ce déchet pour le tri en France : "${input}"` }];
+      parts = [{ text: `Identifie précisément ce déchet et donne les consignes de tri en France : "${input}"` }];
     } else {
       parts = [
         { inlineData: input },
         { text: isBarcode 
-            ? "Identifie ce produit par son code-barres et donne les consignes de tri en France." 
-            : "Identifie cet objet et donne les consignes de tri en France." 
+            ? "Identifie ce produit par son code-barres et donne les consignes de tri exactes en France (JAUNE, VERT, GRIS, COMPOST, DECHETTERIE, POINT_APPORT)." 
+            : "Identifie cet objet et donne les consignes de tri exactes en France." 
         }
       ];
     }
@@ -91,7 +91,7 @@ export const generateWasteImage = async (itemName: string): Promise<string | nul
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash-image',
-      contents: { parts: [{ text: `A professional 3D isometric icon of ${itemName} on white background.` }] }
+      contents: { parts: [{ text: `A professional 3D isometric icon of ${itemName} for a recycling app, isolated on white background.` }] }
     });
 
     const part = response.candidates?.[0]?.content?.parts.find(p => p.inlineData);
