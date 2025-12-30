@@ -22,30 +22,34 @@ export default function App() {
   }, []);
 
   const handleProcess = async (input: any, isBarcode: boolean = false) => {
-    // Si c'est du texte, on vérifie qu'il n'est pas vide
     const dataToProcess = typeof input === 'string' ? input.trim() : input;
     if (!dataToProcess) return;
 
+    console.log("Démarrage de l'analyse...", isBarcode ? "Mode Code-barres" : "Mode Standard");
     setIsAnalyzing(true);
+    
     try {
       const res = await analyzeWaste(dataToProcess, isBarcode);
       if (res) {
         setResult(res);
-        // Tâches asynchrones secondaires (image et points de collecte)
+        console.log("Résultat reçu:", res.itemName);
+        
+        // Lancer les processus secondaires sans bloquer
         generateWasteImage(res.itemName).then(img => {
           if (img) setResult(prev => prev ? { ...prev, imageUrl: img } : null);
         });
+        
         if (location) {
           findNearbyPoints(res.bin, location.lat, location.lng).then(pts => {
             if (pts.length) setResult(prev => prev ? { ...prev, nearbyPoints: pts } : null);
           });
         }
       } else {
-        alert("Nous n'avons pas pu identifier cet objet. Essayez d'être plus précis (ex: 'Bouteille en plastique' au lieu de 'plastique').");
+        alert("Nous n'avons pas pu identifier cet objet. Essayez d'être plus spécifique (ex: 'Pot de yaourt' au lieu de 'plastique').");
       }
     } catch (error) {
-      console.error("Erreur d'analyse:", error);
-      alert("Une erreur est survenue lors de l'analyse. Vérifiez votre connexion.");
+      console.error("Erreur lors du traitement:", error);
+      alert("Une erreur technique est survenue. Veuillez vérifier votre connexion.");
     } finally { 
       setIsAnalyzing(false); 
     }
@@ -54,6 +58,7 @@ export default function App() {
   const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      console.log("Fichier sélectionné:", file.name);
       const reader = new FileReader();
       reader.onload = () => {
         const base64 = (reader.result as string).split(',')[1];
@@ -79,22 +84,31 @@ export default function App() {
                 value={query} 
                 onChange={e => setQuery(e.target.value)} 
                 onKeyDown={e => { if(e.key === 'Enter') handleProcess(query); }}
-                placeholder="Ex: Capsule café, pot de yaourt..." 
+                placeholder="Ex: Capsule café, boîte d'œufs..." 
                 className="w-full bg-white border-2 border-slate-100 focus:border-emerald-500 rounded-3xl py-5 px-6 text-lg font-bold shadow-sm outline-none transition-all" 
               />
               <button 
+                type="button"
                 onClick={() => handleProcess(query)} 
-                className="absolute right-3 top-3 bottom-3 bg-emerald-600 text-white px-5 rounded-2xl font-black active:scale-95 transition-transform"
+                className="absolute right-3 top-3 bottom-3 bg-emerald-600 text-white px-5 rounded-2xl font-black active:scale-95 transition-transform hover:bg-emerald-700"
               >
                 Go
               </button>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <button onClick={() => { setBarcodeMode(false); fileInput.current?.click(); }} className="bg-emerald-50 p-6 rounded-3xl flex flex-col items-center gap-2 border-2 border-emerald-100 font-black text-emerald-700 hover:bg-emerald-100 transition-colors">
+              <button 
+                type="button"
+                onClick={() => { setBarcodeMode(false); fileInput.current?.click(); }} 
+                className="bg-emerald-50 p-6 rounded-3xl flex flex-col items-center gap-2 border-2 border-emerald-100 font-black text-emerald-700 hover:bg-emerald-100 transition-colors"
+              >
                 <span className="text-2xl">📸</span> Photo
               </button>
-              <button onClick={() => { setBarcodeMode(true); fileInput.current?.click(); }} className="bg-indigo-50 p-6 rounded-3xl flex flex-col items-center gap-2 border-2 border-indigo-100 font-black text-indigo-700 hover:bg-indigo-100 transition-colors">
+              <button 
+                type="button"
+                onClick={() => { setBarcodeMode(true); fileInput.current?.click(); }} 
+                className="bg-indigo-50 p-6 rounded-3xl flex flex-col items-center gap-2 border-2 border-indigo-100 font-black text-indigo-700 hover:bg-indigo-100 transition-colors"
+              >
                 <span className="text-2xl">🏷️</span> Code-barres
               </button>
             </div>
@@ -103,8 +117,9 @@ export default function App() {
 
           <div className="bg-gradient-to-br from-emerald-600 to-emerald-700 p-6 rounded-3xl text-white shadow-xl relative overflow-hidden">
              <div className="relative z-10">
-                <h3 className="font-black text-lg mb-1 text-white">Impact Zéro Déchet</h3>
-                <p className="text-xs opacity-90 font-bold leading-relaxed text-white">Chaque tri correct est une victoire pour la planète. EcoTri vous aide à recycler mieux.</p>
+                <h3 className="font-black text-lg mb-1 text-white">Zéro Déchet</h3>
+                <p className="text-xs opacity-90 font-bold leading-relaxed text-white italic">"Le meilleur déchet est celui qu'on ne produit pas."</p>
+                <p className="text-xs opacity-90 font-bold leading-relaxed text-white mt-2">EcoTri vous aide à trouver des solutions durables.</p>
              </div>
              <div className="absolute -right-6 -bottom-6 text-6xl opacity-10 rotate-12">♻️</div>
           </div>
@@ -117,7 +132,7 @@ export default function App() {
         <div className="fixed inset-0 bg-white/90 backdrop-blur-xl z-[100] flex flex-col items-center justify-center p-8 text-center">
           <div className="w-20 h-20 border-4 border-emerald-100 border-t-emerald-600 rounded-full animate-spin mb-6" />
           <h3 className="text-2xl font-black text-slate-800">Analyse EcoTri...</h3>
-          <p className="text-slate-400 font-bold mt-2">Identification du déchet et recherche de points de collecte.</p>
+          <p className="text-slate-400 font-bold mt-2">Nous identifions l'objet et cherchons les consignes de tri locales.</p>
         </div>
       )}
     </Layout>
