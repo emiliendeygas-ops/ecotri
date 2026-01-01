@@ -1,22 +1,27 @@
 import React from 'react';
 
 export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <div className="min-h-screen flex flex-col max-w-2xl mx-auto bg-white shadow-2xl overflow-hidden">
-    <header className="p-6 bg-emerald-600 text-white flex justify-between items-center sticky top-0 z-50">
-      <div className="flex items-center gap-3">
-        <div className="bg-white p-2 rounded-xl text-emerald-600 font-black">♻️</div>
-        <h1 className="text-2xl font-black tracking-tight">EcoTri</h1>
+  <div className="min-h-screen flex flex-col max-w-lg mx-auto bg-white shadow-sm ring-1 ring-slate-200">
+    <header className="px-6 py-5 bg-white/80 backdrop-blur-md sticky top-0 z-50 flex justify-between items-center border-b border-slate-100">
+      <div className="flex items-center gap-2">
+        <div className="w-10 h-10 bg-emerald-600 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-200">
+          <span className="text-white text-xl">♻️</span>
+        </div>
+        <div>
+          <h1 className="text-xl font-black text-slate-800 leading-none">EcoTri</h1>
+          <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest">Intelligent</span>
+        </div>
       </div>
-      <button className="bg-white/20 px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-2 hover:bg-white/30 transition-all">
-        Soutenir ☕️
+      <button className="h-10 w-10 bg-slate-50 rounded-xl flex items-center justify-center hover:bg-slate-100 transition-colors">
+        <span className="text-lg">⚙️</span>
       </button>
     </header>
-    <main className="flex-1 overflow-y-auto">{children}</main>
-    <footer className="p-8 text-center border-t border-slate-100 bg-slate-50">
-      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-2">EcoTri © 2025 • Guide de tri durable</p>
-      <div className="flex justify-center gap-4 text-emerald-600 text-[10px] font-bold">
-        <button className="hover:underline">Conditions</button>
-        <button className="hover:underline">Partenaires</button>
+    <main className="flex-1">{children}</main>
+    <footer className="p-8 text-center bg-slate-50">
+      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em] mb-4">Agir pour la planète • 2025</p>
+      <div className="flex justify-center gap-6">
+        <div className="w-8 h-8 rounded-full bg-slate-200 animate-pulse"></div>
+        <div className="w-8 h-8 rounded-full bg-slate-200 animate-pulse"></div>
       </div>
     </footer>
   </div>

@@ -16,7 +16,7 @@ export default function App() {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         p => setLocation({ lat: p.coords.latitude, lng: p.coords.longitude }),
-        err => console.warn("Localisation non activée.", err)
+        err => console.warn("Géolocalisation inactive.")
       );
     }
   }, []);
@@ -40,10 +40,10 @@ export default function App() {
           });
         }
       } else {
-        alert("L'IA n'a pas pu identifier cet objet. Réessayez avec un nom plus précis.");
+        alert("Objet non identifié. Essayez d'être plus précis (ex: 'Bouteille de lait').");
       }
     } catch (error) {
-      console.error("Erreur Application:", error);
+      console.error("App Error:", error);
     } finally { 
       setIsAnalyzing(false); 
     }
@@ -64,59 +64,85 @@ export default function App() {
   return (
     <Layout>
       {!result ? (
-        <div className="p-8 space-y-10 animate-slide-up">
-          <div className="text-center space-y-3 mt-4">
-            <h2 className="text-4xl font-black text-slate-800 tracking-tight">EcoTri 🌍</h2>
-            <p className="text-slate-500 font-bold">Votre assistant de tri intelligent.</p>
+        <div className="flex flex-col min-h-[70vh]">
+          {/* Hero Section */}
+          <div className="bg-gradient-to-b from-emerald-50 to-white px-8 pt-12 pb-6 text-center">
+            <div className="inline-block p-4 bg-white rounded-3xl shadow-xl shadow-emerald-100 mb-6 animate-float">
+              <span className="text-4xl">🌍</span>
+            </div>
+            <h2 className="text-4xl font-black text-slate-800 tracking-tight leading-tight mb-4">
+              Le tri intelligent,<br/><span className="text-emerald-600">sans effort.</span>
+            </h2>
+            <p className="text-slate-500 font-medium text-sm px-4">
+              Scannez, photographiez ou tapez le nom d'un objet pour savoir instantanément où le jeter.
+            </p>
           </div>
 
-          <div className="space-y-4">
+          {/* Interface Action */}
+          <div className="flex-1 px-8 pb-12 space-y-6">
             <div className="relative group">
               <input 
                 type="text" 
                 value={query} 
                 onChange={e => setQuery(e.target.value)} 
                 onKeyDown={e => { if(e.key === 'Enter') handleProcess(query); }}
-                placeholder="Ex: Pile, carton, pot de confiture..." 
-                className="w-full bg-white border-2 border-slate-100 focus:border-emerald-500 rounded-3xl py-5 px-6 text-lg font-bold shadow-sm outline-none transition-all" 
+                placeholder="Un déchet à trier ?" 
+                className="w-full bg-white border-2 border-slate-100 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 rounded-3xl py-6 px-7 text-lg font-bold shadow-sm outline-none transition-all placeholder:text-slate-300" 
               />
               <button 
-                type="button"
                 onClick={() => handleProcess(query)} 
-                className="absolute right-3 top-3 bottom-3 bg-emerald-600 text-white px-5 rounded-2xl font-black active:scale-95 transition-transform"
+                className="absolute right-3 top-3 bottom-3 bg-emerald-600 text-white px-6 rounded-2xl font-black text-sm active:scale-95 transition-transform shadow-lg shadow-emerald-200"
               >
                 Go
               </button>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <button onClick={() => { setBarcodeMode(false); fileInput.current?.click(); }} className="bg-emerald-50 p-6 rounded-3xl flex flex-col items-center gap-2 border-2 border-emerald-100 font-black text-emerald-700 hover:bg-emerald-100 transition-colors">
-                <span className="text-2xl">📸</span> Photo
+              <button 
+                onClick={() => { setBarcodeMode(false); fileInput.current?.click(); }}
+                className="flex flex-col items-center justify-center gap-3 p-8 bg-white border-2 border-slate-100 rounded-[2.5rem] hover:border-emerald-500 transition-all group active:scale-95 shadow-sm"
+              >
+                <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">📸</div>
+                <span className="font-black text-slate-700">Photo</span>
               </button>
-              <button onClick={() => { setBarcodeMode(true); fileInput.current?.click(); }} className="bg-indigo-50 p-6 rounded-3xl flex flex-col items-center gap-2 border-2 border-indigo-100 font-black text-indigo-700 hover:bg-indigo-100 transition-colors">
-                <span className="text-2xl">🏷️</span> Code-barres
+              <button 
+                onClick={() => { setBarcodeMode(true); fileInput.current?.click(); }}
+                className="flex flex-col items-center justify-center gap-3 p-8 bg-white border-2 border-slate-100 rounded-[2.5rem] hover:border-emerald-500 transition-all group active:scale-95 shadow-sm"
+              >
+                <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">🏷️</div>
+                <span className="font-black text-slate-700">Scanner</span>
               </button>
             </div>
             <input type="file" ref={fileInput} className="hidden" accept="image/*" onChange={onFileChange} />
-          </div>
 
-          <div className="bg-gradient-to-br from-emerald-600 to-emerald-700 p-6 rounded-3xl text-white shadow-xl relative overflow-hidden">
-             <div className="relative z-10">
-                <h3 className="font-black text-lg mb-1 text-white">Impact Planète</h3>
-                <p className="text-xs opacity-90 font-bold leading-relaxed text-white">Chaque geste compte. EcoTri vous aide à trier sans erreur.</p>
-             </div>
-             <div className="absolute -right-6 -bottom-6 text-6xl opacity-10 rotate-12">♻️</div>
+            {/* Suggestions */}
+            <div className="pt-4">
+              <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Suggestions fréquentes</h3>
+              <div className="flex flex-wrap gap-2">
+                {['Capsule café', 'Pile', 'Carton pizza', 'Ampoule'].map(item => (
+                  <button key={item} onClick={() => handleProcess(item)} className="px-5 py-2.5 bg-slate-100 rounded-full text-xs font-bold text-slate-600 hover:bg-emerald-50 hover:text-emerald-700 transition-colors">
+                    {item}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       ) : (
         <ResultCard result={result} userLocation={location} onReset={() => { setResult(null); setQuery(''); }} />
       )}
 
+      {/* Loading Overlay */}
       {isAnalyzing && (
-        <div className="fixed inset-0 bg-white/90 backdrop-blur-xl z-[100] flex flex-col items-center justify-center p-8 text-center">
-          <div className="w-20 h-20 border-4 border-emerald-100 border-t-emerald-600 rounded-full animate-spin mb-6" />
+        <div className="fixed inset-0 bg-white/90 backdrop-blur-xl z-[100] flex flex-col items-center justify-center p-8 text-center animate-in fade-in duration-300">
+          <div className="relative w-32 h-32 mb-8">
+             <div className="absolute inset-0 border-4 border-slate-100 rounded-3xl"></div>
+             <div className="absolute inset-0 border-4 border-emerald-600 rounded-3xl animate-pulse"></div>
+             <div className="scan-line"></div>
+             <div className="absolute inset-0 flex items-center justify-center text-4xl">🔍</div>
+          </div>
           <h3 className="text-2xl font-black text-slate-800">Analyse EcoTri...</h3>
-          <p className="text-slate-400 font-bold mt-2">Identification de l'objet et des consignes locales.</p>
+          <p className="text-slate-400 font-bold mt-2 max-w-xs">Nous identifions l'objet et ses consignes locales spécifiques.</p>
         </div>
       )}
     </Layout>
