@@ -10,30 +10,40 @@ export const ApiKeyGuard: React.FC<ApiKeyGuardProps> = ({ children }) => {
   useEffect(() => {
     const checkKey = async () => {
       // @ts-ignore
-      const selected = await window.aistudio.hasSelectedApiKey();
-      setHasKey(selected);
+      if (window.aistudio && typeof window.aistudio.hasSelectedApiKey === 'function') {
+        const selected = await window.aistudio.hasSelectedApiKey();
+        setHasKey(selected);
+      } else {
+        // Si l'objet n'existe pas encore (environnement de test simple), on laisse passer
+        setHasKey(true);
+      }
     };
     checkKey();
   }, []);
 
   const handleOpenKey = async () => {
     // @ts-ignore
-    await window.aistudio.openSelectKey();
-    // On assume le succès selon les instructions (gestion du race condition)
-    setHasKey(true);
+    if (window.aistudio) {
+      await window.aistudio.openSelectKey();
+      setHasKey(true);
+    }
   };
 
-  if (hasKey === null) return null; // Chargement silencieux
+  if (hasKey === null) return (
+    <div className="fixed inset-0 bg-white flex items-center justify-center">
+      <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+    </div>
+  );
 
   if (!hasKey) {
     return (
-      <div className="fixed inset-0 bg-white z-[200] flex flex-col items-center justify-center p-8 text-center animate-in">
+      <div className="fixed inset-0 bg-white z-[200] flex flex-col items-center justify-center p-8 text-center">
         <div className="w-24 h-24 bg-emerald-100 rounded-[2rem] flex items-center justify-center text-5xl mb-8 animate-float">
           🔑
         </div>
         <h2 className="text-3xl font-[900] text-slate-900 mb-4 tracking-tight">Configuration Requise</h2>
         <p className="text-slate-500 font-medium mb-10 max-w-xs leading-relaxed">
-          Pour utiliser les fonctions d'analyse intelligente haute performance, vous devez sélectionner une clé API liée à un projet facturable.
+          Veuillez sélectionner votre clé API payante pour accéder aux fonctionnalités d'IA avancées.
         </p>
         
         <div className="space-y-4 w-full max-w-sm">
@@ -53,10 +63,6 @@ export const ApiKeyGuard: React.FC<ApiKeyGuardProps> = ({ children }) => {
             Documentation Facturation ↗
           </a>
         </div>
-
-        <p className="mt-12 text-[10px] text-slate-300 font-bold max-w-[200px]">
-          Vos données restent privées et sécurisées via l'interface Google AI Studio.
-        </p>
       </div>
     );
   }

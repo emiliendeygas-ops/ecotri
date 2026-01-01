@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { SortingResult } from './types';
 import { BIN_MAPPING } from './constants';
 import { MapView } from './MapView';
-import { AdBanner } from './AdBanner'; // Import du nouveau composant publicitaire
+import { AdBanner } from './AdBanner';
 
 export const ResultCard: React.FC<{ result: SortingResult, userLocation?: any, onReset: () => void }> = ({ result, userLocation, onReset }) => {
   const binInfo = BIN_MAPPING[result.bin] || BIN_MAPPING['GRIS'];
@@ -32,7 +32,6 @@ export const ResultCard: React.FC<{ result: SortingResult, userLocation?: any, o
 
       <div className="bg-white -mt-10 rounded-t-[4rem] p-10 space-y-10 relative z-10 shadow-2xl border-t border-slate-50">
         
-        {/* MONETISATION : Publicité active AdSense avec votre ID */}
         <AdBanner adSlot="5112143646" /> 
 
         <section>
@@ -64,11 +63,10 @@ export const ResultCard: React.FC<{ result: SortingResult, userLocation?: any, o
             </div>
             <p className="font-bold text-lg mb-8 leading-relaxed opacity-95">{result.zeroWasteAlternative}</p>
             
-            {/* LEVIER MONETISATION 2 : AFFILIATION (Lien vers boutique écologique) */}
             <button 
-              onClick={() => window.open('https://www.eco-shop.com/search?q=' + encodeURIComponent(result.itemName), '_blank')}
+              onClick={() => window.open('https://www.google.com/search?q=' + encodeURIComponent(result.itemName + ' durable'), '_blank')}
               className="w-full bg-white text-emerald-800 py-5 rounded-2xl font-black text-sm shadow-xl active:scale-95 transition-all">
-              🛍️ Acheter une version durable
+              🛍️ Trouver une version durable
             </button>
           </section>
         )}
@@ -96,15 +94,6 @@ export const ResultCard: React.FC<{ result: SortingResult, userLocation?: any, o
                 </button>
               ))}
             </div>
-            
-            <a 
-              href={result.nearbyPoints[activePoint].uri} 
-              target="_blank" 
-              rel="noopener noreferrer" 
-              className="flex items-center justify-center gap-4 bg-emerald-50 text-emerald-700 py-6 rounded-3xl font-black text-sm active:scale-95 transition-all shadow-sm"
-            >
-              <span>📍</span> Itinéraire Google Maps
-            </a>
           </section>
         )}
 

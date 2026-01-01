@@ -1,13 +1,9 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { SortingResult, BinType, CollectionPoint } from "./types";
 
-/**
- * Note: On crée une nouvelle instance à chaque appel pour garantir l'utilisation 
- * de la clé API la plus récente (sélectionnée via le dialogue).
- */
-
 export const analyzeWaste = async (input: string | { data: string, mimeType: string }, isBarcode: boolean = false): Promise<SortingResult | null> => {
   try {
+    // Instance créée à l'appel pour utiliser la clé sélectionnée
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     let parts: any[] = [];
     
@@ -44,9 +40,14 @@ export const analyzeWaste = async (input: string | { data: string, mimeType: str
       }
     });
 
-    return JSON.parse(response.text) as SortingResult;
+    const text = response.text;
+    return text ? JSON.parse(text) : null;
   } catch (e: any) { 
     console.error("ERREUR GEMINI:", e.message);
+    if (e.message?.includes("not found")) {
+      // @ts-ignore
+      if (window.aistudio) window.aistudio.openSelectKey();
+    }
     return null; 
   }
 };
@@ -80,7 +81,7 @@ export const generateWasteImage = async (itemName: string): Promise<string | nul
   try {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const response = await ai.models.generateContent({
-      model: 'gemini-3-pro-image-preview', // Passage au modèle Pro pour une qualité supérieure
+      model: 'gemini-3-pro-image-preview',
       contents: {
         parts: [{ text: `A professional ultra-high quality 3D isometric icon of ${itemName} for a waste sorting application, studio lighting, isolated on white background.` }]
       },
@@ -89,7 +90,7 @@ export const generateWasteImage = async (itemName: string): Promise<string | nul
       }
     });
 
-    const part = response.candidates[0].content.parts.find(p => p.inlineData);
+    const part = response.candidates?.[0]?.content?.parts.find(p => p.inlineData);
     return part ? `data:image/png;base64,${part.inlineData.data}` : null;
   } catch (e) { 
     console.error("Erreur Image Pro:", e);
