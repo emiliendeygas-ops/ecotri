@@ -5,45 +5,51 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EcoTri - Guide de Tri Intelligent</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        body { font-family: 'Inter', sans-serif; overflow-x: hidden; }
-        .leaflet-container { border-radius: 1.5rem; z-index: 1; background-color: #f1f5f9; }
+        :root { --emerald-primary: #10b981; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f8fafc; }
+        .leaflet-container { border-radius: 2rem; z-index: 1; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         
         @keyframes scan {
-            0% { top: 0%; opacity: 0; }
+            0% { transform: translateY(0); opacity: 0; }
             50% { opacity: 1; }
-            100% { top: 100%; opacity: 0; }
+            100% { transform: translateY(180px); opacity: 0; }
         }
-        .scan-line {
-            position: absolute;
+        .scanning-line {
             width: 100%;
-            height: 4px;
-            background: linear-gradient(to right, transparent, #10b981, transparent);
-            box-shadow: 0 0 15px #10b981;
-            animation: scan 2s linear infinite;
+            height: 3px;
+            background: linear-gradient(to right, transparent, var(--emerald-primary), transparent);
+            box-shadow: 0 0 15px var(--emerald-primary);
+            position: absolute;
+            top: 0;
+            animation: scan 2s ease-in-out infinite;
         }
-        .animate-float { animation: float 3s ease-in-out infinite; }
-        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        .animate-in { animation: fadeIn 0.4s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 <script type="importmap">
 {
   "imports": {
-    "@google/genai": "https://esm.sh/@google/genai@^1.34.0",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
-    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2",
-    "react/": "https://esm.sh/react@^19.2.3/",
     "react": "https://esm.sh/react@^19.2.3",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "@google/genai": "https://esm.sh/@google/genai@^1.34.0",
+    "leaflet": "https://esm.sh/leaflet@^1.9.4",
     "vite": "https://esm.sh/vite@^7.3.0",
-    "leaflet": "https://esm.sh/leaflet@^1.9.4"
+    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2"
   }
 }
 </script>
 </head>
-<body class="bg-[#F8FAFC] text-slate-900">
+<body class="text-slate-900">
     <div id="root"></div>
     <script type="module" src="./index.tsx"></script>
 </body>
