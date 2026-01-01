@@ -16,7 +16,7 @@ export default function App() {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         p => setLocation({ lat: p.coords.latitude, lng: p.coords.longitude }),
-        err => console.warn("Géolocalisation indisponible:", err)
+        err => console.warn("Géolocalisation non disponible. La recherche de points de collecte sera limitée.", err)
       );
     }
   }, []);
@@ -31,6 +31,7 @@ export default function App() {
       
       if (res) {
         setResult(res);
+        // Tâches secondaires en arrière-plan
         generateWasteImage(res.itemName).then(img => {
           if (img) setResult(prev => prev ? { ...prev, imageUrl: img } : null);
         });
@@ -40,11 +41,11 @@ export default function App() {
           });
         }
       } else {
-        alert("Désolé, l'IA n'a pas pu identifier cet objet. Essayez d'être plus précis (ex: 'Pot de yaourt' au lieu de 'yaourt').");
+        alert("L'IA n'a pas pu traiter la demande. Vérifiez la console (F12) pour plus de détails techniques.");
       }
-    } catch (error) {
-      console.error("Error handleProcess:", error);
-      alert("Une erreur technique est survenue. Vérifiez votre connexion.");
+    } catch (error: any) {
+      console.error("Erreur App:", error);
+      alert("Une erreur technique est survenue.");
     } finally { 
       setIsAnalyzing(false); 
     }
@@ -68,7 +69,7 @@ export default function App() {
         <div className="p-8 space-y-10 animate-slide-up">
           <div className="text-center space-y-3 mt-4">
             <h2 className="text-4xl font-black text-slate-800 tracking-tight">EcoTri 🌍</h2>
-            <p className="text-slate-500 font-bold">Le tri intelligent, simplement.</p>
+            <p className="text-slate-500 font-bold">Le tri intelligent, instantanément.</p>
           </div>
 
           <div className="space-y-4">
@@ -78,7 +79,7 @@ export default function App() {
                 value={query} 
                 onChange={e => setQuery(e.target.value)} 
                 onKeyDown={e => { if(e.key === 'Enter') handleProcess(query); }}
-                placeholder="Ex: Pile, carton de pizza, ampoule..." 
+                placeholder="Ex: Capsule de café, pot de yaourt..." 
                 className="w-full bg-white border-2 border-slate-100 focus:border-emerald-500 rounded-3xl py-5 px-6 text-lg font-bold shadow-sm outline-none transition-all" 
               />
               <button 
@@ -92,10 +93,10 @@ export default function App() {
 
             <div className="grid grid-cols-2 gap-4">
               <button onClick={() => { setBarcodeMode(false); fileInput.current?.click(); }} className="bg-emerald-50 p-6 rounded-3xl flex flex-col items-center gap-2 border-2 border-emerald-100 font-black text-emerald-700 hover:bg-emerald-100 transition-colors">
-                <span className="text-2xl">📸</span> Prendre Photo
+                <span className="text-2xl">📸</span> Photo
               </button>
               <button onClick={() => { setBarcodeMode(true); fileInput.current?.click(); }} className="bg-indigo-50 p-6 rounded-3xl flex flex-col items-center gap-2 border-2 border-indigo-100 font-black text-indigo-700 hover:bg-indigo-100 transition-colors">
-                <span className="text-2xl">🏷️</span> Scanner Code
+                <span className="text-2xl">🏷️</span> Code-barres
               </button>
             </div>
             <input type="file" ref={fileInput} className="hidden" accept="image/*" onChange={onFileChange} />
@@ -104,7 +105,7 @@ export default function App() {
           <div className="bg-gradient-to-br from-emerald-600 to-emerald-700 p-6 rounded-3xl text-white shadow-xl relative overflow-hidden">
              <div className="relative z-10">
                 <h3 className="font-black text-lg mb-1">Impact Planète</h3>
-                <p className="text-xs opacity-90 font-bold leading-relaxed">Trier correctement permet de recycler 80% des déchets ménagers. Merci pour votre geste !</p>
+                <p className="text-xs opacity-90 font-bold leading-relaxed">Chaque déchet bien trié est une victoire pour l'environnement. Merci pour votre geste !</p>
              </div>
              <div className="absolute -right-6 -bottom-6 text-6xl opacity-10 rotate-12">♻️</div>
           </div>
@@ -116,8 +117,8 @@ export default function App() {
       {isAnalyzing && (
         <div className="fixed inset-0 bg-white/90 backdrop-blur-xl z-[100] flex flex-col items-center justify-center p-8 text-center">
           <div className="w-20 h-20 border-4 border-emerald-100 border-t-emerald-600 rounded-full animate-spin mb-6" />
-          <h3 className="text-2xl font-black text-slate-800">Analyse en cours...</h3>
-          <p className="text-slate-400 font-bold mt-2">Nous identifions l'objet et ses consignes de tri locales.</p>
+          <h3 className="text-2xl font-black text-slate-800">Analyse EcoTri...</h3>
+          <p className="text-slate-400 font-bold mt-2">Identification de l'objet et recherche des consignes locales.</p>
         </div>
       )}
     </Layout>

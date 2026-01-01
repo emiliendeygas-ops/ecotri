@@ -7,13 +7,13 @@ export const analyzeWaste = async (input: string | { data: string, mimeType: str
     let parts: any[] = [];
     
     if (typeof input === 'string') {
-      parts = [{ text: `Identifie précisément ce déchet et donne les consignes de tri en France : "${input}"` }];
+      parts = [{ text: `Identifie précisément ce déchet et donne les consignes de tri en France (bac jaune, verre, gris, compost, déchetterie ou point d'apport) : "${input}"` }];
     } else {
       parts = [
         { inlineData: input },
         { text: isBarcode 
             ? "Identifie ce produit par son code-barres et donne les consignes de tri exactes en France (JAUNE, VERT, GRIS, COMPOST, DECHETTERIE, POINT_APPORT)." 
-            : "Identifie cet objet et donne les consignes de tri exactes en France." 
+            : "Identifie cet objet déchet et donne les consignes de tri exactes en France." 
         }
       ];
     }
@@ -22,7 +22,7 @@ export const analyzeWaste = async (input: string | { data: string, mimeType: str
       model: "gemini-3-flash-preview",
       contents: { parts },
       config: {
-        systemInstruction: "Tu es un expert en tri sélectif français. Réponds exclusivement en JSON. Les bacs autorisés sont : JAUNE, VERT, GRIS, COMPOST, DECHETTERIE, POINT_APPORT.",
+        systemInstruction: "Tu es un expert en tri sélectif français. Réponds exclusivement en JSON valide suivant le schéma fourni. Les bacs (bin) autorisés sont : JAUNE, VERT, GRIS, COMPOST, DECHETTERIE, POINT_APPORT.",
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
@@ -46,11 +46,18 @@ export const analyzeWaste = async (input: string | { data: string, mimeType: str
     });
 
     const text = response.text;
-    if (!text) return null;
+    if (!text) {
+      console.error("L'IA a renvoyé une réponse vide.");
+      return null;
+    }
     
     return JSON.parse(text) as SortingResult;
-  } catch (e) { 
-    console.error("Gemini Error:", e);
+  } catch (e: any) { 
+    // Log crucial pour le débogage utilisateur
+    console.error("ERREUR CRITIQUE GEMINI:", e.message);
+    if (e.message?.includes("API key")) {
+      console.error("Problème de clé API. Vérifiez vos variables d'environnement.");
+    }
     return null; 
   }
 };
@@ -58,9 +65,10 @@ export const analyzeWaste = async (input: string | { data: string, mimeType: str
 export const findNearbyPoints = async (binType: BinType, lat: number, lng: number): Promise<CollectionPoint[]> => {
   try {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    // Note: googleMaps nécessite souvent un projet avec facturation activée dans Google AI Studio
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
-      contents: `Points de collecte pour ${binType} près de ${lat}, ${lng}.`,
+      contents: `Où se trouve le point de collecte pour ${binType} le plus proche de ma position (lat: ${lat}, lng: ${lng}) ?`,
       config: { 
         tools: [{ googleMaps: {} }], 
         toolConfig: { 
@@ -81,7 +89,8 @@ export const findNearbyPoints = async (binType: BinType, lat: number, lng: numbe
         lng: parseFloat(c.maps.uri.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/)?.[2] || "0")
       }))
       .filter((p: any) => p.lat !== 0);
-  } catch (e) { 
+  } catch (e: any) { 
+    console.warn("Erreur Maps (souvent dû à l'absence de facturation sur le projet):", e.message);
     return []; 
   }
 };
