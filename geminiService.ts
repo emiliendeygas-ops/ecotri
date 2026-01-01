@@ -3,8 +3,10 @@ import { SortingResult, BinType, CollectionPoint } from "./types";
 
 export const analyzeWaste = async (input: string | { data: string, mimeType: string }, isBarcode: boolean = false): Promise<SortingResult | null> => {
   try {
-    // Instance créée à l'appel pour utiliser la clé sélectionnée
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const key = process.env.API_KEY;
+    if (!key) throw new Error("API_KEY manquante");
+    
+    const ai = new GoogleGenAI({ apiKey: key });
     let parts: any[] = [];
     
     if (typeof input === 'string') {
@@ -40,21 +42,18 @@ export const analyzeWaste = async (input: string | { data: string, mimeType: str
       }
     });
 
-    const text = response.text;
-    return text ? JSON.parse(text) : null;
+    return JSON.parse(response.text) as SortingResult;
   } catch (e: any) { 
     console.error("ERREUR GEMINI:", e.message);
-    if (e.message?.includes("not found")) {
-      // @ts-ignore
-      if (window.aistudio) window.aistudio.openSelectKey();
-    }
     return null; 
   }
 };
 
 export const findNearbyPoints = async (binType: BinType, lat: number, lng: number): Promise<CollectionPoint[]> => {
   try {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const key = process.env.API_KEY;
+    if (!key) return [];
+    const ai = new GoogleGenAI({ apiKey: key });
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
       contents: `Où jeter mes déchets de type ${binType} proche de : lat ${lat}, lng ${lng} ?`,
@@ -79,11 +78,13 @@ export const findNearbyPoints = async (binType: BinType, lat: number, lng: numbe
 
 export const generateWasteImage = async (itemName: string): Promise<string | null> => {
   try {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const key = process.env.API_KEY;
+    if (!key) return null;
+    const ai = new GoogleGenAI({ apiKey: key });
     const response = await ai.models.generateContent({
       model: 'gemini-3-pro-image-preview',
       contents: {
-        parts: [{ text: `A professional ultra-high quality 3D isometric icon of ${itemName} for a waste sorting application, studio lighting, isolated on white background.` }]
+        parts: [{ text: `A professional 3D isometric icon of ${itemName} for a waste sorting application, isolated on white background.` }]
       },
       config: {
         imageConfig: { aspectRatio: "1:1", imageSize: "1K" }
@@ -92,8 +93,5 @@ export const generateWasteImage = async (itemName: string): Promise<string | nul
 
     const part = response.candidates?.[0]?.content?.parts.find(p => p.inlineData);
     return part ? `data:image/png;base64,${part.inlineData.data}` : null;
-  } catch (e) { 
-    console.error("Erreur Image Pro:", e);
-    return null; 
-  }
+  } catch (e) { return null; }
 };
