@@ -3,6 +3,7 @@ import { SortingResult, BinType, CollectionPoint } from "./types";
 
 export const analyzeWaste = async (input: string | { data: string, mimeType: string }, isBarcode: boolean = false): Promise<SortingResult | null> => {
   try {
+    // Initialisation locale pour garantir la présence de la clé API
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     let parts: any[] = [];
     
@@ -22,7 +23,7 @@ export const analyzeWaste = async (input: string | { data: string, mimeType: str
       model: "gemini-3-flash-preview",
       contents: { parts },
       config: {
-        systemInstruction: "Tu es un expert en tri sélectif français. Réponds exclusivement en JSON valide suivant le schéma fourni. Les bacs (bin) autorisés sont : JAUNE, VERT, GRIS, COMPOST, DECHETTERIE, POINT_APPORT.",
+        systemInstruction: "Tu es un expert en tri sélectif français. Réponds exclusivement en JSON valide. Les bacs (bin) autorisés sont : JAUNE, VERT, GRIS, COMPOST, DECHETTERIE, POINT_APPORT.",
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
@@ -45,19 +46,9 @@ export const analyzeWaste = async (input: string | { data: string, mimeType: str
       }
     });
 
-    const text = response.text;
-    if (!text) {
-      console.error("L'IA a renvoyé une réponse vide.");
-      return null;
-    }
-    
-    return JSON.parse(text) as SortingResult;
+    return JSON.parse(response.text) as SortingResult;
   } catch (e: any) { 
-    // Log crucial pour le débogage utilisateur
-    console.error("ERREUR CRITIQUE GEMINI:", e.message);
-    if (e.message?.includes("API key")) {
-      console.error("Problème de clé API. Vérifiez vos variables d'environnement.");
-    }
+    console.error("ERREUR GEMINI ANALYSE:", e.message);
     return null; 
   }
 };
@@ -65,10 +56,9 @@ export const analyzeWaste = async (input: string | { data: string, mimeType: str
 export const findNearbyPoints = async (binType: BinType, lat: number, lng: number): Promise<CollectionPoint[]> => {
   try {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    // Note: googleMaps nécessite souvent un projet avec facturation activée dans Google AI Studio
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
-      contents: `Où se trouve le point de collecte pour ${binType} le plus proche de ma position (lat: ${lat}, lng: ${lng}) ?`,
+      contents: `Où se trouve le point de collecte pour ${binType} le plus proche de : lat ${lat}, lng ${lng} ?`,
       config: { 
         tools: [{ googleMaps: {} }], 
         toolConfig: { 
@@ -90,7 +80,7 @@ export const findNearbyPoints = async (binType: BinType, lat: number, lng: numbe
       }))
       .filter((p: any) => p.lat !== 0);
   } catch (e: any) { 
-    console.warn("Erreur Maps (souvent dû à l'absence de facturation sur le projet):", e.message);
+    console.warn("ERREUR GEMINI MAPS:", e.message);
     return []; 
   }
 };
@@ -105,7 +95,8 @@ export const generateWasteImage = async (itemName: string): Promise<string | nul
 
     const part = response.candidates?.[0]?.content?.parts.find(p => p.inlineData);
     return part ? `data:image/png;base64,${part.inlineData.data}` : null;
-  } catch (e) { 
+  } catch (e: any) { 
+    console.error("ERREUR GEMINI IMAGE:", e.message);
     return null; 
   }
 };

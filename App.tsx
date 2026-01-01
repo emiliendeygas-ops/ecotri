@@ -16,7 +16,7 @@ export default function App() {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         p => setLocation({ lat: p.coords.latitude, lng: p.coords.longitude }),
-        err => console.warn("Géolocalisation non disponible. La recherche de points de collecte sera limitée.", err)
+        err => console.warn("Localisation non activée.", err)
       );
     }
   }, []);
@@ -31,7 +31,6 @@ export default function App() {
       
       if (res) {
         setResult(res);
-        // Tâches secondaires en arrière-plan
         generateWasteImage(res.itemName).then(img => {
           if (img) setResult(prev => prev ? { ...prev, imageUrl: img } : null);
         });
@@ -41,11 +40,10 @@ export default function App() {
           });
         }
       } else {
-        alert("L'IA n'a pas pu traiter la demande. Vérifiez la console (F12) pour plus de détails techniques.");
+        alert("L'IA n'a pas pu identifier cet objet. Réessayez avec un nom plus précis.");
       }
-    } catch (error: any) {
-      console.error("Erreur App:", error);
-      alert("Une erreur technique est survenue.");
+    } catch (error) {
+      console.error("Erreur Application:", error);
     } finally { 
       setIsAnalyzing(false); 
     }
@@ -69,7 +67,7 @@ export default function App() {
         <div className="p-8 space-y-10 animate-slide-up">
           <div className="text-center space-y-3 mt-4">
             <h2 className="text-4xl font-black text-slate-800 tracking-tight">EcoTri 🌍</h2>
-            <p className="text-slate-500 font-bold">Le tri intelligent, instantanément.</p>
+            <p className="text-slate-500 font-bold">Votre assistant de tri intelligent.</p>
           </div>
 
           <div className="space-y-4">
@@ -79,7 +77,7 @@ export default function App() {
                 value={query} 
                 onChange={e => setQuery(e.target.value)} 
                 onKeyDown={e => { if(e.key === 'Enter') handleProcess(query); }}
-                placeholder="Ex: Capsule de café, pot de yaourt..." 
+                placeholder="Ex: Pile, carton, pot de confiture..." 
                 className="w-full bg-white border-2 border-slate-100 focus:border-emerald-500 rounded-3xl py-5 px-6 text-lg font-bold shadow-sm outline-none transition-all" 
               />
               <button 
@@ -104,8 +102,8 @@ export default function App() {
 
           <div className="bg-gradient-to-br from-emerald-600 to-emerald-700 p-6 rounded-3xl text-white shadow-xl relative overflow-hidden">
              <div className="relative z-10">
-                <h3 className="font-black text-lg mb-1">Impact Planète</h3>
-                <p className="text-xs opacity-90 font-bold leading-relaxed">Chaque déchet bien trié est une victoire pour l'environnement. Merci pour votre geste !</p>
+                <h3 className="font-black text-lg mb-1 text-white">Impact Planète</h3>
+                <p className="text-xs opacity-90 font-bold leading-relaxed text-white">Chaque geste compte. EcoTri vous aide à trier sans erreur.</p>
              </div>
              <div className="absolute -right-6 -bottom-6 text-6xl opacity-10 rotate-12">♻️</div>
           </div>
@@ -118,7 +116,7 @@ export default function App() {
         <div className="fixed inset-0 bg-white/90 backdrop-blur-xl z-[100] flex flex-col items-center justify-center p-8 text-center">
           <div className="w-20 h-20 border-4 border-emerald-100 border-t-emerald-600 rounded-full animate-spin mb-6" />
           <h3 className="text-2xl font-black text-slate-800">Analyse EcoTri...</h3>
-          <p className="text-slate-400 font-bold mt-2">Identification de l'objet et recherche des consignes locales.</p>
+          <p className="text-slate-400 font-bold mt-2">Identification de l'objet et des consignes locales.</p>
         </div>
       )}
     </Layout>
