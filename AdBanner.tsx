@@ -17,8 +17,8 @@ declare global {
  * @param adSlot ID de l'unité publicitaire créé sur AdSense
  */
 export const AdBanner: React.FC<AdBannerProps> = ({ 
-  adClient = "ca-pub-XXXXXXXXXXXXXXXX", // Remplacez par votre ID
-  adSlot = "XXXXXXXXXX" // Remplacez par votre ID d'unité publicitaire
+  adClient = "pub-3407163814927819", // Remplacez par votre ID
+  adSlot = "5112143646" // Remplacez par votre ID d'unité publicitaire
 }) => {
   useEffect(() => {
     try {
