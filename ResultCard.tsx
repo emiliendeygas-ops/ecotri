@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { SortingResult } from './types';
 import { BIN_MAPPING } from './constants';
 import { MapView } from './MapView';
+import { AdBanner } from './AdBanner'; // Import du nouveau composant publicitaire
 
 export const ResultCard: React.FC<{ result: SortingResult, userLocation?: any, onReset: () => void }> = ({ result, userLocation, onReset }) => {
   const binInfo = BIN_MAPPING[result.bin] || BIN_MAPPING['GRIS'];
@@ -30,6 +31,10 @@ export const ResultCard: React.FC<{ result: SortingResult, userLocation?: any, o
       </div>
 
       <div className="bg-white -mt-10 rounded-t-[4rem] p-10 space-y-10 relative z-10 shadow-2xl border-t border-slate-50">
+        
+        {/* MONETISATION : Publicité active AdSense */}
+        <AdBanner adSlot="XXXXXXXXXX" /> 
+
         <section>
           <div className="flex items-center gap-3 mb-5">
             <div className="w-1.5 h-6 bg-emerald-500 rounded-full"></div>
@@ -58,8 +63,12 @@ export const ResultCard: React.FC<{ result: SortingResult, userLocation?: any, o
               <h3 className="text-xs font-black uppercase tracking-widest text-emerald-100">Alternative Durable</h3>
             </div>
             <p className="font-bold text-lg mb-8 leading-relaxed opacity-95">{result.zeroWasteAlternative}</p>
-            <button className="w-full bg-white text-emerald-800 py-5 rounded-2xl font-black text-sm shadow-xl active:scale-95 transition-all">
-              🛍️ Découvrir l'alternative
+            
+            {/* LEVIER MONETISATION 2 : AFFILIATION (Lien vers boutique écologique) */}
+            <button 
+              onClick={() => window.open('https://www.eco-shop.com/search?q=' + encodeURIComponent(result.itemName), '_blank')}
+              className="w-full bg-white text-emerald-800 py-5 rounded-2xl font-black text-sm shadow-xl active:scale-95 transition-all">
+              🛍️ Acheter une version durable
             </button>
           </section>
         )}
