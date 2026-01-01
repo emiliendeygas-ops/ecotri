@@ -83,7 +83,7 @@ export default function App() {
 
             {/* Publicité accueil (Banner) */}
             <div className="px-6 mb-6">
-               <AdBanner adSlot="AD_SLOT_HOME" />
+               <AdBanner adSlot="5112143646" />
             </div>
 
             {/* Action Center */}

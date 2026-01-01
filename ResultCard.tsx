@@ -32,8 +32,8 @@ export const ResultCard: React.FC<{ result: SortingResult, userLocation?: any, o
 
       <div className="bg-white -mt-10 rounded-t-[4rem] p-10 space-y-10 relative z-10 shadow-2xl border-t border-slate-50">
         
-        {/* MONETISATION : Publicité active AdSense */}
-        <AdBanner adSlot="XXXXXXXXXX" /> 
+        {/* MONETISATION : Publicité active AdSense avec votre ID */}
+        <AdBanner adSlot="5112143646" /> 
 
         <section>
           <div className="flex items-center gap-3 mb-5">

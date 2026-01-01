@@ -12,13 +12,11 @@ declare global {
 }
 
 /**
- * Composant AdSense réutilisable.
- * @param adClient Votre ID éditeur (ca-pub-XXX)
- * @param adSlot ID de l'unité publicitaire créé sur AdSense
+ * Composant AdSense réutilisable avec vos identifiants configurés.
  */
 export const AdBanner: React.FC<AdBannerProps> = ({ 
-  adClient = "ca-pub-3407163814927819", // Remplacez par votre ID
-  adSlot = "5112143646" // Remplacez par votre ID d'unité publicitaire
+  adClient = "ca-pub-3407163814927819", 
+  adSlot = "5112143646" 
 }) => {
   useEffect(() => {
     try {
