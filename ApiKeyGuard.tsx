@@ -14,7 +14,6 @@ export const ApiKeyGuard: React.FC<ApiKeyGuardProps> = ({ children }) => {
         const selected = await window.aistudio.hasSelectedApiKey();
         setHasKey(selected);
       } else {
-        // Fallback si l'environnement n'est pas prêt
         setHasKey(true);
       }
     };
@@ -25,7 +24,7 @@ export const ApiKeyGuard: React.FC<ApiKeyGuardProps> = ({ children }) => {
     // @ts-ignore
     if (window.aistudio) {
       await window.aistudio.openSelectKey();
-      // REGLE DE RACE CONDITION : On assume le succès immédiatement après l'ouverture du dialogue
+      // On débloque immédiatement après l'interaction utilisateur
       setHasKey(true);
     }
   };
@@ -39,12 +38,12 @@ export const ApiKeyGuard: React.FC<ApiKeyGuardProps> = ({ children }) => {
   if (!hasKey) {
     return (
       <div className="fixed inset-0 bg-white z-[200] flex flex-col items-center justify-center p-8 text-center">
-        <div className="w-24 h-24 bg-emerald-100 rounded-[2rem] flex items-center justify-center text-5xl mb-8 animate-float">
+        <div className="w-24 h-24 bg-emerald-100 rounded-[3rem] flex items-center justify-center text-5xl mb-8 animate-float">
           🔑
         </div>
-        <h2 className="text-3xl font-[900] text-slate-900 mb-4 tracking-tight">Clé API Requise</h2>
+        <h2 className="text-3xl font-[900] text-slate-900 mb-4 tracking-tight">Activation Requise</h2>
         <p className="text-slate-500 font-medium mb-10 max-w-xs leading-relaxed">
-          Pour utiliser l'IA de tri et de génération d'images, vous devez sélectionner une clé API liée à un compte payant.
+          Pour utiliser l'IA EcoTri, sélectionnez une clé API valide issue d'un projet Google Cloud payant (avec facturation).
         </p>
         
         <div className="space-y-4 w-full max-w-sm">
@@ -52,7 +51,7 @@ export const ApiKeyGuard: React.FC<ApiKeyGuardProps> = ({ children }) => {
             onClick={handleOpenKey}
             className="w-full bg-emerald-600 text-white py-6 rounded-3xl font-black text-lg shadow-xl shadow-emerald-100 active:scale-95 transition-all"
           >
-            Sélectionner ma Clé API
+            Choisir ma Clé API
           </button>
           
           <a 
@@ -61,7 +60,7 @@ export const ApiKeyGuard: React.FC<ApiKeyGuardProps> = ({ children }) => {
             rel="noopener noreferrer"
             className="block text-xs font-black text-slate-400 uppercase tracking-widest hover:text-emerald-600 transition-colors"
           >
-            Aide : Pourquoi une clé payante ? ↗
+            Aide : Configurer la facturation ↗
           </a>
         </div>
       </div>

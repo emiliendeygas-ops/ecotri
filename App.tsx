@@ -18,7 +18,7 @@ export default function App() {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         p => setLocation({ lat: p.coords.latitude, lng: p.coords.longitude }),
-        err => console.warn("Localisation inactive.")
+        err => console.warn("Localisation non disponible")
       );
     }
   }, []);
@@ -29,33 +29,31 @@ export default function App() {
 
     setIsAnalyzing(true);
     try {
-      // Analyse principale (Flash-preview)
+      // 1. Analyse textuelle/visuelle principale
       const res = await analyzeWaste(dataToProcess, isBarcode);
       
       if (res) {
         setResult(res);
         
-        // Requêtes secondaires isolées (ne bloquent pas si elles échouent)
+        // 2. Tâches secondaires (ne bloquent pas si elles échouent)
         generateWasteImage(res.itemName)
           .then(img => { if (img) setResult(prev => prev ? { ...prev, imageUrl: img } : null); })
-          .catch(e => console.warn("Image gen failed (probably billing)"));
+          .catch(() => null);
 
         if (location) {
           findNearbyPoints(res.bin, location.lat, location.lng)
             .then(pts => { if (pts?.length) setResult(prev => prev ? { ...prev, nearbyPoints: pts } : null); })
-            .catch(e => console.warn("Maps points failed"));
+            .catch(() => null);
         }
-      } else {
-        alert("Nous n'avons pas pu identifier cet objet. Précisez votre recherche.");
       }
     } catch (error: any) {
-      console.error("Search error:", error);
-      if (error.message?.includes("entity was not found") || error.message?.includes("404")) {
-        // Redéclenchement manuel si la clé est morte/invalide
+      console.error("Process error:", error);
+      if (error.message === "API_KEY_INVALID_OR_BILLING_REQUIRED") {
+        alert("⚠️ Problème de clé API : Assurez-vous d'avoir sélectionné une clé liée à un projet avec facturation activée dans Google Cloud.");
         // @ts-ignore
         window.aistudio?.openSelectKey();
       } else {
-        alert("Erreur de connexion avec l'IA. Vérifiez votre clé API.");
+        alert("Une erreur est survenue lors de la recherche. Réessayez dans quelques instants.");
       }
     } finally { 
       setIsAnalyzing(false); 
@@ -79,25 +77,25 @@ export default function App() {
       <Layout>
         {!result ? (
           <div className="flex flex-col min-h-[75vh] animate-in">
-            {/* Hero */}
+            {/* Hero Section */}
             <div className="px-8 pt-12 pb-8 text-center">
               <div className="inline-block p-4 bg-white rounded-3xl shadow-xl shadow-emerald-100 mb-8 animate-float">
                 <span className="text-5xl">♻️</span>
               </div>
               <h1 className="text-4xl font-[900] text-slate-900 tracking-tight leading-[1.1] mb-4">
-                Trier vos déchets<br/>
-                <span className="text-emerald-600">sans effort.</span>
+                Le tri sélectif<br/>
+                <span className="text-emerald-600">réinventé.</span>
               </h1>
               <p className="text-slate-500 font-medium px-4 text-sm leading-relaxed">
-                Utilisez l'IA pour recycler correctement chaque objet du quotidien.
+                Photographiez ou recherchez un déchet pour connaître sa consigne de tri exacte.
               </p>
             </div>
 
-            <div className="px-6 mb-6">
+            <div className="px-6 mb-8">
                <AdBanner adSlot="5112143646" />
             </div>
 
-            {/* Search Input */}
+            {/* Input Section */}
             <div className="px-6 space-y-6">
               <div className="relative group">
                 <input 
@@ -105,7 +103,7 @@ export default function App() {
                   value={query} 
                   onChange={e => setQuery(e.target.value)} 
                   onKeyDown={e => { if(e.key === 'Enter') handleProcess(query); }}
-                  placeholder="Ex: Capsule de café, carton..." 
+                  placeholder="Ex: Pot de yaourt, pile..." 
                   className="w-full bg-white rounded-[2rem] py-6 px-8 text-lg font-bold shadow-sm border border-slate-100 outline-none focus:ring-2 focus:ring-emerald-500 transition-all" 
                 />
                 <button 
@@ -113,7 +111,7 @@ export default function App() {
                   disabled={isAnalyzing}
                   className="absolute right-3 top-3 bottom-3 bg-emerald-600 text-white px-8 rounded-[1.5rem] font-black text-sm active:scale-95 transition-all disabled:opacity-50"
                 >
-                  Go
+                  Analyser
                 </button>
               </div>
 
@@ -124,27 +122,37 @@ export default function App() {
                 </button>
                 <button onClick={() => { setBarcodeMode(true); fileInput.current?.click(); }} className="bg-white p-8 rounded-[2.5rem] flex flex-col items-center gap-3 border-2 border-slate-100 transition-all active:scale-95 shadow-sm hover:border-emerald-200">
                   <div className="text-3xl">🏷️</div>
-                  <span className="font-bold text-slate-700">Scan Code</span>
+                  <span className="font-bold text-slate-700">Scanner</span>
                 </button>
               </div>
               <input type="file" ref={fileInput} className="hidden" accept="image/*" onChange={onFileChange} />
             </div>
 
-            {/* SEO Content for Adsense Approval */}
-            <div className="mt-16 px-8 space-y-12 pb-20">
+            {/* Content for AdSense Approval */}
+            <div className="mt-16 px-8 space-y-12 pb-20 border-t border-slate-50 pt-12">
               <section>
-                <h2 className="text-xl font-black text-slate-900 mb-4">L'importance du Tri Sélectif</h2>
-                <p className="text-slate-600 text-sm leading-relaxed">
-                  Chaque geste compte. En France, le tri des emballages permet de réduire considérablement l'empreinte carbone. EcoTri vous aide à identifier le bon bac (Jaune, Vert, Gris) instantanément grâce à Gemini.
+                <h2 className="text-xl font-black text-slate-900 mb-4">Guide Officiel du Tri en France</h2>
+                <p className="text-slate-600 text-sm leading-relaxed mb-4">
+                  EcoTri utilise l'intelligence artificielle pour simplifier le recyclage. Depuis 2023, les consignes de tri se sont simplifiées en France : <strong>tous les emballages se trient</strong> dans le bac jaune. Cependant, certains objets complexes comme les piles, les médicaments ou les encombrants nécessitent des circuits spécifiques.
                 </p>
+                <div className="bg-emerald-50 p-6 rounded-[2rem] border border-emerald-100">
+                  <h4 className="font-black text-emerald-800 text-xs uppercase tracking-widest mb-3">Le saviez-vous ?</h4>
+                  <p className="text-emerald-700 text-xs font-bold italic">Un français produit en moyenne 573kg de déchets par an. Bien trier permet d'économiser jusqu'à 70% d'énergie lors de la fabrication de nouveaux produits.</p>
+                </div>
               </section>
-              <section className="bg-slate-900 rounded-[3rem] p-8 text-white">
-                <h2 className="text-lg font-black mb-4">Guide Rapide</h2>
-                <ul className="space-y-4 text-xs text-slate-300">
-                  <li>🟢 <b>Verre :</b> Bouteilles et bocaux uniquement.</li>
-                  <li>🟡 <b>Jaune :</b> Plastique, métal, carton, papier.</li>
-                  <li>⚫ <b>Gris :</b> Tout ce qui ne se recycle pas.</li>
-                </ul>
+
+              <section>
+                <h2 className="text-xl font-black text-slate-900 mb-4">Questions Fréquentes (FAQ)</h2>
+                <div className="space-y-6">
+                  <div>
+                    <h4 className="font-black text-sm text-slate-800 mb-1">Dois-je laver mes emballages avant de trier ?</h4>
+                    <p className="text-xs text-slate-500">Non, il suffit de bien les vider. Les laver gaspille de l'eau inutilement.</p>
+                  </div>
+                  <div>
+                    <h4 className="font-black text-sm text-slate-800 mb-1">Où jeter les masques et mouchoirs ?</h4>
+                    <p className="text-xs text-slate-500">Ils doivent impérativement être jetés dans le bac gris (ordures ménagères) pour des raisons sanitaires.</p>
+                  </div>
+                </div>
               </section>
             </div>
           </div>
@@ -160,8 +168,8 @@ export default function App() {
               <div className="scanning-line"></div>
               <div className="absolute inset-0 flex items-center justify-center text-5xl animate-bounce">🔍</div>
             </div>
-            <h2 className="text-2xl font-black text-slate-900 mb-2">Analyse en cours...</h2>
-            <p className="text-slate-400 font-bold max-w-[200px] text-sm">Vérification de la consigne de tri via l'IA...</p>
+            <h2 className="text-2xl font-black text-slate-900 mb-2">Identification...</h2>
+            <p className="text-slate-400 font-bold max-w-[200px] text-sm">Nous interrogeons l'IA pour déterminer la consigne de tri.</p>
           </div>
         )}
       </Layout>
