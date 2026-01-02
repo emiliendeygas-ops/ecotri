@@ -2,25 +2,30 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { SortingResult, BinType, CollectionPoint } from "./types";
 
 /**
- * Analyse un déchet ou un code-barres.
- * Utilise gemini-3-flash-preview pour une meilleure compatibilité.
+ * Fonction utilitaire pour obtenir l'instance d'IA avec la clé actuelle.
  */
-export const analyzeWaste = async (input: string | { data: string, mimeType: string }, isBarcode: boolean = false): Promise<SortingResult | null> => {
+const getAI = () => {
   const apiKey = process.env.API_KEY;
   if (!apiKey) throw new Error("API_KEY_MISSING");
+  return new GoogleGenAI({ apiKey });
+};
 
-  const ai = new GoogleGenAI({ apiKey });
-  
+/**
+ * Analyse un déchet ou un code-barres.
+ */
+export const analyzeWaste = async (input: string | { data: string, mimeType: string }, isBarcode: boolean = false): Promise<SortingResult | null> => {
   try {
+    const ai = getAI();
     let parts: any[] = [];
+    
     if (typeof input === 'string') {
-      parts = [{ text: `Consigne de tri précise en France pour : "${input}".` }];
+      parts = [{ text: `Objet à trier en France : "${input}". Donne la consigne de tri précise.` }];
     } else {
       parts = [
         { inlineData: input },
         { text: isBarcode 
-            ? "Identifie ce code-barres et donne les consignes de tri en France (JSON)." 
-            : "Identifie cet objet et donne les consignes de tri en France (JSON)." 
+            ? "Identifie ce code-barres et donne les consignes de tri en France au format JSON." 
+            : "Identifie cet objet et donne les consignes de tri en France au format JSON." 
         }
       ];
     }
@@ -29,7 +34,7 @@ export const analyzeWaste = async (input: string | { data: string, mimeType: str
       model: "gemini-3-flash-preview",
       contents: { parts },
       config: {
-        systemInstruction: "Expert tri France. Réponds en JSON uniquement. Bacs: JAUNE, VERT, GRIS, COMPOST, DECHETTERIE, POINT_APPORT.",
+        systemInstruction: "Expert en tri sélectif français. Réponds UNIQUEMENT en JSON. Bacs valides : JAUNE, VERT, GRIS, COMPOST, DECHETTERIE, POINT_APPORT.",
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
@@ -50,26 +55,25 @@ export const analyzeWaste = async (input: string | { data: string, mimeType: str
     if (!resultText) return null;
     return JSON.parse(resultText) as SortingResult;
   } catch (e: any) { 
-    console.error("Erreur Analyse:", e);
-    if (e.message?.includes("entity was not found") || e.message?.includes("404") || e.message?.includes("403")) {
-      throw new Error("API_KEY_INVALID_OR_BILLING_REQUIRED");
+    console.error("Erreur technique API Gemini:", e);
+    // On propage une erreur spécifique pour que l'UI puisse réagir
+    const msg = e.message?.toLowerCase() || "";
+    if (msg.includes("404") || msg.includes("not found") || msg.includes("api_key") || msg.includes("403")) {
+      throw new Error("AUTH_OR_BILLING_ERROR");
     }
     throw e;
   }
 };
 
 /**
- * Recherche de points de collecte (Optionnel, ne bloque pas l'app).
+ * Recherche de points de collecte (Maps Grounding).
  */
 export const findNearbyPoints = async (binType: BinType, lat: number, lng: number): Promise<CollectionPoint[]> => {
-  const apiKey = process.env.API_KEY;
-  if (!apiKey) return [];
-  
   try {
-    const ai = new GoogleGenAI({ apiKey });
+    const ai = getAI();
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
-      contents: `Points de collecte ${binType} autour de lat: ${lat}, lng: ${lng} en France.`,
+      contents: `Où jeter mes déchets de type ${binType} ? Position: lat ${lat}, lng ${lng}.`,
       config: { 
         tools: [{ googleMaps: {} }], 
         toolConfig: { retrievalConfig: { latLng: { latitude: lat, longitude: lng } } } 
@@ -92,18 +96,15 @@ export const findNearbyPoints = async (binType: BinType, lat: number, lng: numbe
 };
 
 /**
- * Génération d'image 3D (Optionnel, très sensible au Billing).
+ * Génération d'image d'illustration.
  */
 export const generateWasteImage = async (itemName: string): Promise<string | null> => {
-  const apiKey = process.env.API_KEY;
-  if (!apiKey) return null;
-
   try {
-    const ai = new GoogleGenAI({ apiKey });
+    const ai = getAI();
     const response = await ai.models.generateContent({
       model: 'gemini-3-pro-image-preview',
       contents: {
-        parts: [{ text: `A clean 3D isometric icon of a ${itemName} for a recycling app, professional lighting, white background.` }]
+        parts: [{ text: `A professional 3D isometric icon of ${itemName} on a white background, minimalist style.` }]
       },
       config: {
         imageConfig: { aspectRatio: "1:1", imageSize: "1K" }
@@ -113,7 +114,6 @@ export const generateWasteImage = async (itemName: string): Promise<string | nul
     const part = response.candidates?.[0]?.content?.parts.find(p => p.inlineData);
     return part ? `data:image/png;base64,${part.inlineData.data}` : null;
   } catch (e) { 
-    console.warn("Image gen skipped:", e);
     return null; 
   }
 };
