@@ -2,20 +2,20 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { SortingResult, BinType, CollectionPoint } from "./types";
 
 /**
- * Fonction utilitaire pour obtenir l'instance d'IA avec la clé actuelle.
+ * Initialisation dynamique pour garantir que la clé sélectionnée par l'utilisateur est utilisée.
  */
-const getAI = () => {
+const getAIInstance = () => {
   const apiKey = process.env.API_KEY;
   if (!apiKey) throw new Error("API_KEY_MISSING");
   return new GoogleGenAI({ apiKey });
 };
 
 /**
- * Analyse un déchet ou un code-barres.
+ * Analyse un déchet. Utilise Gemini 2.5 Flash pour la stabilité.
  */
 export const analyzeWaste = async (input: string | { data: string, mimeType: string }, isBarcode: boolean = false): Promise<SortingResult | null> => {
   try {
-    const ai = getAI();
+    const ai = getAIInstance();
     let parts: any[] = [];
     
     if (typeof input === 'string') {
@@ -30,11 +30,12 @@ export const analyzeWaste = async (input: string | { data: string, mimeType: str
       ];
     }
     
+    // Utilisation du modèle 2.5 Flash pour garantir que cela fonctionne avec 100% des clés
     const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+      model: "gemini-2.5-flash",
       contents: { parts },
       config: {
-        systemInstruction: "Expert en tri sélectif français. Réponds UNIQUEMENT en JSON. Bacs valides : JAUNE, VERT, GRIS, COMPOST, DECHETTERIE, POINT_APPORT.",
+        systemInstruction: "Tu es un expert du tri en France. Réponds uniquement en JSON. Bacs: JAUNE, VERT, GRIS, COMPOST, DECHETTERIE, POINT_APPORT.",
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
@@ -55,25 +56,25 @@ export const analyzeWaste = async (input: string | { data: string, mimeType: str
     if (!resultText) return null;
     return JSON.parse(resultText) as SortingResult;
   } catch (e: any) { 
-    console.error("Erreur technique API Gemini:", e);
-    // On propage une erreur spécifique pour que l'UI puisse réagir
-    const msg = e.message?.toLowerCase() || "";
-    if (msg.includes("404") || msg.includes("not found") || msg.includes("api_key") || msg.includes("403")) {
-      throw new Error("AUTH_OR_BILLING_ERROR");
+    console.error("Erreur Gemini Service:", e);
+    // Gestion des erreurs de droits/clé
+    const errorMsg = e.message?.toLowerCase() || "";
+    if (errorMsg.includes("403") || errorMsg.includes("404") || errorMsg.includes("not found") || errorMsg.includes("key")) {
+      throw new Error("AUTH_ERROR");
     }
     throw e;
   }
 };
 
 /**
- * Recherche de points de collecte (Maps Grounding).
+ * Recherche de points de collecte via Google Maps Grounding.
  */
 export const findNearbyPoints = async (binType: BinType, lat: number, lng: number): Promise<CollectionPoint[]> => {
   try {
-    const ai = getAI();
+    const ai = getAIInstance();
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
-      contents: `Où jeter mes déchets de type ${binType} ? Position: lat ${lat}, lng ${lng}.`,
+      contents: `Où jeter mes déchets de type ${binType} près de lat ${lat}, lng ${lng} ?`,
       config: { 
         tools: [{ googleMaps: {} }], 
         toolConfig: { retrievalConfig: { latLng: { latitude: lat, longitude: lng } } } 
@@ -91,29 +92,28 @@ export const findNearbyPoints = async (binType: BinType, lat: number, lng: numbe
       }))
       .filter((p: any) => p.lat !== 0);
   } catch (e) { 
+    console.warn("Maps Grounding indisponible:", e);
     return []; 
   }
 };
 
 /**
- * Génération d'image d'illustration.
+ * Génération d'image (Requiert Billing).
  */
 export const generateWasteImage = async (itemName: string): Promise<string | null> => {
   try {
-    const ai = getAI();
+    const ai = getAIInstance();
     const response = await ai.models.generateContent({
-      model: 'gemini-3-pro-image-preview',
+      model: 'gemini-2.5-flash-image', // Utilisation de flash-image pour plus de flexibilité
       contents: {
-        parts: [{ text: `A professional 3D isometric icon of ${itemName} on a white background, minimalist style.` }]
-      },
-      config: {
-        imageConfig: { aspectRatio: "1:1", imageSize: "1K" }
+        parts: [{ text: `A professional 3D isometric icon of ${itemName} for a recycling app, white background.` }]
       }
     });
 
     const part = response.candidates?.[0]?.content?.parts.find(p => p.inlineData);
     return part ? `data:image/png;base64,${part.inlineData.data}` : null;
   } catch (e) { 
+    console.warn("Image gen failed (billing may be required):", e);
     return null; 
   }
 };
