@@ -18,7 +18,7 @@ export default function App() {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         p => setLocation({ lat: p.coords.latitude, lng: p.coords.longitude }),
-        err => console.warn("Géolocalisation refusée")
+        err => console.warn("Géolocalisation non disponible")
       );
     }
   }, []);
@@ -29,13 +29,11 @@ export default function App() {
 
     setIsAnalyzing(true);
     try {
-      // 1. Analyse principale (Texte ou Image)
       const res = await analyzeWaste(dataToProcess, isBarcode);
       
       if (res) {
         setResult(res);
         
-        // 2. Lancement des tâches secondaires en arrière-plan (ne bloquent pas)
         generateWasteImage(res.itemName)
           .then(img => { if (img) setResult(prev => prev ? { ...prev, imageUrl: img } : null); })
           .catch(() => {});
@@ -45,18 +43,18 @@ export default function App() {
             .then(pts => { if (pts?.length) setResult(prev => prev ? { ...prev, nearbyPoints: pts } : null); })
             .catch(() => {});
         }
-      } else {
-        alert("L'IA n'a pas pu identifier cet objet. Essayez d'être plus précis.");
       }
     } catch (error: any) {
-      console.error("Search Error:", error);
+      console.error("Erreur d'analyse:", error);
+      const errorMsg = error.message || "";
       
-      if (error.message === "AUTH_ERROR" || error.message === "API_KEY_MISSING") {
-        alert("⚠️ Erreur d'accès : Votre clé API est soit invalide, soit le projet Google Cloud associé n'a pas les droits nécessaires. Veuillez sélectionner une clé valide.");
+      // Cas spécifique demandé par les consignes : "Requested entity was not found"
+      if (errorMsg.includes("Requested entity was not found") || errorMsg.includes("404") || errorMsg.includes("403")) {
+        alert("Problème d'accès : La clé API ou le projet associé ne semble pas valide pour ce modèle. Veuillez resélectionner votre clé API.");
         // @ts-ignore
         if (window.aistudio) window.aistudio.openSelectKey();
       } else {
-        alert("Une erreur technique est survenue. Vérifiez votre connexion ou réessayez avec un autre mot-clé.");
+        alert("Une erreur est survenue lors de la recherche. Réessayez dans quelques instants.");
       }
     } finally { 
       setIsAnalyzing(false); 
@@ -89,7 +87,7 @@ export default function App() {
                 <span className="text-emerald-600">facilement.</span>
               </h1>
               <p className="text-slate-500 font-medium px-4 text-sm leading-relaxed">
-                Recherchez un objet ou prenez-le en photo pour savoir comment le recycler.
+                Recherchez un objet ou prenez-le en photo pour savoir comment le recycler en France.
               </p>
             </div>
 
@@ -104,7 +102,7 @@ export default function App() {
                   value={query} 
                   onChange={e => setQuery(e.target.value)} 
                   onKeyDown={e => { if(e.key === 'Enter') handleProcess(query); }}
-                  placeholder="Ex: Pile, bouteille d'huile..." 
+                  placeholder="Ex: Pot de yaourt, pile..." 
                   className="w-full bg-white rounded-[2rem] py-6 px-8 text-lg font-bold shadow-sm border border-slate-100 outline-none focus:ring-2 focus:ring-emerald-500 transition-all" 
                 />
                 <button 
@@ -112,7 +110,7 @@ export default function App() {
                   disabled={isAnalyzing}
                   className="absolute right-3 top-3 bottom-3 bg-emerald-600 text-white px-8 rounded-[1.5rem] font-black text-sm active:scale-95 transition-all disabled:opacity-50"
                 >
-                  Chercher
+                  Go
                 </button>
               </div>
 
@@ -128,14 +126,14 @@ export default function App() {
               </div>
               <input type="file" ref={fileInput} className="hidden" accept="image/*" onChange={onFileChange} />
             </div>
-
-            <div className="mt-16 px-8 space-y-12 pb-20 border-t border-slate-50 pt-12">
-              <section>
-                <h2 className="text-xl font-black text-slate-900 mb-4">Guide du tri 2025</h2>
-                <p className="text-slate-600 text-sm leading-relaxed">
-                  EcoTri utilise l'intelligence artificielle pour simplifier votre quotidien. Tous les emballages se trient désormais dans le bac jaune en France.
+            
+            <div className="mt-12 px-8 pb-20">
+              <div className="bg-slate-50 p-6 rounded-[2rem] border border-slate-100">
+                <h3 className="font-black text-slate-900 text-sm mb-2">💡 Le saviez-vous ?</h3>
+                <p className="text-slate-500 text-xs leading-relaxed">
+                  En France, la règle est simple : tous les emballages (plastique, métal, carton) vont dans le bac jaune !
                 </p>
-              </section>
+              </div>
             </div>
           </div>
         ) : (
@@ -150,8 +148,8 @@ export default function App() {
               <div className="scanning-line"></div>
               <div className="absolute inset-0 flex items-center justify-center text-5xl animate-bounce">🔍</div>
             </div>
-            <h2 className="text-2xl font-black text-slate-900 mb-2">Recherche...</h2>
-            <p className="text-slate-400 font-bold max-w-[200px] text-sm">Analyse de la consigne de tri via l'intelligence artificielle.</p>
+            <h2 className="text-2xl font-black text-slate-900 mb-2">Analyse IA</h2>
+            <p className="text-slate-400 font-bold max-w-[200px] text-sm">Nous recherchons la consigne de tri exacte pour vous.</p>
           </div>
         )}
       </Layout>
