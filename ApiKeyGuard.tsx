@@ -14,7 +14,7 @@ export const ApiKeyGuard: React.FC<ApiKeyGuardProps> = ({ children }) => {
         const selected = await window.aistudio.hasSelectedApiKey();
         setHasKey(selected);
       } else {
-        // Si l'objet n'existe pas encore (environnement de test simple), on laisse passer
+        // Fallback si l'environnement n'est pas prêt
         setHasKey(true);
       }
     };
@@ -25,6 +25,7 @@ export const ApiKeyGuard: React.FC<ApiKeyGuardProps> = ({ children }) => {
     // @ts-ignore
     if (window.aistudio) {
       await window.aistudio.openSelectKey();
+      // REGLE DE RACE CONDITION : On assume le succès immédiatement après l'ouverture du dialogue
       setHasKey(true);
     }
   };
@@ -41,9 +42,9 @@ export const ApiKeyGuard: React.FC<ApiKeyGuardProps> = ({ children }) => {
         <div className="w-24 h-24 bg-emerald-100 rounded-[2rem] flex items-center justify-center text-5xl mb-8 animate-float">
           🔑
         </div>
-        <h2 className="text-3xl font-[900] text-slate-900 mb-4 tracking-tight">Configuration Requise</h2>
+        <h2 className="text-3xl font-[900] text-slate-900 mb-4 tracking-tight">Clé API Requise</h2>
         <p className="text-slate-500 font-medium mb-10 max-w-xs leading-relaxed">
-          Veuillez sélectionner votre clé API payante pour accéder aux fonctionnalités d'IA avancées.
+          Pour utiliser l'IA de tri et de génération d'images, vous devez sélectionner une clé API liée à un compte payant.
         </p>
         
         <div className="space-y-4 w-full max-w-sm">
@@ -60,7 +61,7 @@ export const ApiKeyGuard: React.FC<ApiKeyGuardProps> = ({ children }) => {
             rel="noopener noreferrer"
             className="block text-xs font-black text-slate-400 uppercase tracking-widest hover:text-emerald-600 transition-colors"
           >
-            Documentation Facturation ↗
+            Aide : Pourquoi une clé payante ? ↗
           </a>
         </div>
       </div>
