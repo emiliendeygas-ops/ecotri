@@ -1,8 +1,7 @@
 {
-  "name": "EcoTri - Monétisé",
-  "description": "Application de tri sélectif intelligente avec monétisation intégrée.",
   "requestFramePermissions": [
-    "camera",
     "geolocation"
-  ]
+  ],
+  "name": "EcoTri - Monétisé",
+  "description": ""
 }

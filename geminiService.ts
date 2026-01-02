@@ -1,42 +1,28 @@
+
 import { GoogleGenAI, Type } from "@google/genai";
 import { SortingResult, BinType, CollectionPoint } from "./types";
 
 /**
- * Crée une nouvelle instance de l'IA au moment de l'appel pour garantir
- * l'utilisation de la clé la plus récente sélectionnée par l'utilisateur.
+ * Helper pour obtenir une instance AI propre
  */
 const getAI = () => {
-  const apiKey = process.env.API_KEY;
-  if (!apiKey) throw new Error("API_KEY_MISSING");
-  return new GoogleGenAI({ apiKey });
+  const key = process.env.API_KEY;
+  if (!key || key === 'undefined') {
+    throw new Error("API_KEY_INVALID");
+  }
+  return new GoogleGenAI({ apiKey: key });
 };
 
-/**
- * Analyse un déchet via texte ou image.
- * Utilise gemini-3-flash-preview (modèle de base recommandé).
- */
-export const analyzeWaste = async (input: string | { data: string, mimeType: string }, isBarcode: boolean = false): Promise<SortingResult | null> => {
+export const analyzeWaste = async (input: string): Promise<SortingResult | null> => {
   try {
     const ai = getAI();
-    let parts: any[] = [];
-    
-    if (typeof input === 'string') {
-      parts = [{ text: `Objet à trier en France : "${input}". Donne la consigne de tri précise.` }];
-    } else {
-      parts = [
-        { inlineData: input },
-        { text: isBarcode 
-            ? "Identifie ce code-barres et donne les consignes de tri en France au format JSON." 
-            : "Identifie cet objet et donne les consignes de tri en France au format JSON." 
-        }
-      ];
-    }
-    
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
-      contents: { parts },
+      contents: { 
+        parts: [{ text: `Consigne de tri en France (normes 2025) pour cet objet : "${input}".` }] 
+      },
       config: {
-        systemInstruction: "Tu es un expert du tri sélectif en France (consignes 2025). Réponds UNIQUEMENT au format JSON. Bacs autorisés: JAUNE, VERT, GRIS, COMPOST, DECHETTERIE, POINT_APPORT.",
+        systemInstruction: "Tu es l'expert tri EcoTri France. Réponds TOUJOURS en JSON pur. Bacs : JAUNE, VERT, GRIS, COMPOST, DECHETTERIE, POINT_APPORT.",
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
@@ -53,26 +39,22 @@ export const analyzeWaste = async (input: string | { data: string, mimeType: str
       }
     });
 
-    const resultText = response.text;
-    if (!resultText) return null;
-    return JSON.parse(resultText) as SortingResult;
-  } catch (e: any) { 
-    console.error("Erreur API Gemini:", e);
-    const msg = e.message || "";
-    // On propage l'erreur brute pour que App.tsx puisse détecter "Requested entity was not found"
-    throw e;
+    return JSON.parse(response.text || '{}') as SortingResult;
+  } catch (error: any) {
+    console.error("Analyse error:", error);
+    if (error.message?.includes("API key not found") || error.message === "API_KEY_INVALID") {
+      throw new Error("API_KEY_INVALID");
+    }
+    return null;
   }
 };
 
-/**
- * Recherche de points de collecte (Requis Gemini 2.5 pour Maps Grounding).
- */
 export const findNearbyPoints = async (binType: BinType, lat: number, lng: number): Promise<CollectionPoint[]> => {
   try {
     const ai = getAI();
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
-      contents: `Où se trouve le point de collecte pour ${binType} le plus proche de lat:${lat}, lng:${lng} ?`,
+      contents: `Points de collecte/bacs ${binType} proches de lat:${lat}, lng:${lng}.`,
       config: { 
         tools: [{ googleMaps: {} }], 
         toolConfig: { retrievalConfig: { latLng: { latitude: lat, longitude: lng } } } 
@@ -89,27 +71,24 @@ export const findNearbyPoints = async (binType: BinType, lat: number, lng: numbe
         lng: parseFloat(c.maps.uri.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/)?.[2] || "0")
       }))
       .filter((p: any) => p.lat !== 0);
-  } catch (e) { 
-    return []; 
+  } catch (e) {
+    return [];
   }
 };
 
-/**
- * Génération d'image d'illustration.
- */
 export const generateWasteImage = async (itemName: string): Promise<string | null> => {
   try {
     const ai = getAI();
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash-image',
-      contents: {
-        parts: [{ text: `A professional 3D isometric icon of ${itemName} on a white background, minimalist style.` }]
+      contents: { 
+        parts: [{ text: `A clean 3D isometric icon of ${itemName} on a solid white background, high quality.` }] 
       }
     });
 
     const part = response.candidates?.[0]?.content?.parts.find(p => p.inlineData);
     return part ? `data:image/png;base64,${part.inlineData.data}` : null;
-  } catch (e) { 
-    return null; 
+  } catch (e) {
+    return null;
   }
 };
