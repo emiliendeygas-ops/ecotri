@@ -32,21 +32,26 @@ export default function App() {
       const res = await analyzeWaste(dataToProcess, isBarcode);
       if (res) {
         setResult(res);
-        // On lance les requêtes secondaires en arrière-plan
-        generateWasteImage(res.itemName).then(img => {
+        // On tente de générer l'image et les points, mais on ne bloque pas si ça échoue
+        generateWasteImage(res.itemName).catch(() => null).then(img => {
           if (img) setResult(prev => prev ? { ...prev, imageUrl: img } : null);
         });
         if (location) {
-          findNearbyPoints(res.bin, location.lat, location.lng).then(pts => {
-            if (pts.length) setResult(prev => prev ? { ...prev, nearbyPoints: pts } : null);
+          findNearbyPoints(res.bin, location.lat, location.lng).catch(() => []).then(pts => {
+            if (pts && pts.length) setResult(prev => prev ? { ...prev, nearbyPoints: pts } : null);
           });
         }
       } else {
-        alert("Nous n'avons pas pu identifier cet objet. Merci de réessayer avec un nom plus précis.");
+        alert("Objet non identifié. Essayez d'être plus précis (ex: 'pot de yaourt' au lieu de 'plastique').");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Process error:", error);
-      alert("Une erreur technique est survenue. Vérifiez votre connexion.");
+      if (error.message?.includes("entity was not found")) {
+        // @ts-ignore
+        window.aistudio?.openSelectKey();
+      } else {
+        alert("Une erreur est survenue. Vérifiez votre connexion ou votre clé API.");
+      }
     } finally { 
       setIsAnalyzing(false); 
     }
@@ -69,81 +74,112 @@ export default function App() {
       <Layout>
         {!result ? (
           <div className="flex flex-col min-h-[75vh] animate-in">
-            {/* Header / Hero */}
+            {/* Hero Section */}
             <div className="px-8 pt-12 pb-8 text-center">
               <div className="inline-block p-4 bg-white rounded-3xl shadow-xl shadow-emerald-100 mb-8 animate-float">
                 <span className="text-5xl">♻️</span>
               </div>
               <h1 className="text-4xl font-[900] text-slate-900 tracking-tight leading-[1.1] mb-4">
                 Trier vos déchets<br/>
-                <span className="text-emerald-600">devient facile.</span>
+                <span className="text-emerald-600">sans effort.</span>
               </h1>
               <p className="text-slate-500 font-medium px-4 text-sm leading-relaxed">
-                Utilisez la recherche ou votre appareil photo pour obtenir la consigne exacte.
+                Scannez, photographiez ou recherchez pour recycler correctement en France.
               </p>
             </div>
 
-            {/* Publicité accueil */}
             <div className="px-6 mb-6">
                <AdBanner adSlot="5112143646" />
             </div>
 
-            {/* Barre de recherche et Actions */}
+            {/* Barre de recherche */}
             <div className="px-6 space-y-6">
               <div className="relative group">
-                <div className="absolute -inset-1 bg-gradient-to-r from-emerald-400 to-teal-400 rounded-[2rem] blur opacity-20 group-focus-within:opacity-40 transition duration-500"></div>
                 <input 
                   type="text" 
                   value={query} 
                   onChange={e => setQuery(e.target.value)} 
                   onKeyDown={e => { if(e.key === 'Enter') handleProcess(query); }}
                   placeholder="Ex: Capsule de café, carton..." 
-                  className="relative w-full bg-white rounded-[2rem] py-6 px-8 text-lg font-bold shadow-sm border border-slate-100 outline-none focus:ring-2 focus:ring-emerald-500 transition-all placeholder:text-slate-300" 
+                  className="w-full bg-white rounded-[2rem] py-6 px-8 text-lg font-bold shadow-sm border border-slate-100 outline-none focus:ring-2 focus:ring-emerald-500 transition-all" 
                 />
                 <button 
                   onClick={() => handleProcess(query)}
-                  className="absolute right-3 top-3 bottom-3 bg-emerald-600 text-white px-8 rounded-[1.5rem] font-black text-sm active:scale-95 transition-all shadow-lg"
+                  className="absolute right-3 top-3 bottom-3 bg-emerald-600 text-white px-8 rounded-[1.5rem] font-black text-sm active:scale-95 transition-all"
                 >
                   Go
                 </button>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-                <button 
-                  onClick={() => { setBarcodeMode(false); fileInput.current?.click(); }} 
-                  className="bg-white p-8 rounded-[2.5rem] flex flex-col items-center gap-3 border-2 border-slate-100 transition-all active:scale-95 shadow-sm hover:border-emerald-200"
-                >
+                <button onClick={() => { setBarcodeMode(false); fileInput.current?.click(); }} className="bg-white p-8 rounded-[2.5rem] flex flex-col items-center gap-3 border-2 border-slate-100 transition-all active:scale-95 shadow-sm hover:border-emerald-200">
                   <div className="text-3xl">📸</div>
                   <span className="font-bold text-slate-700">Photo</span>
                 </button>
-                <button 
-                  onClick={() => { setBarcodeMode(true); fileInput.current?.click(); }} 
-                  className="bg-white p-8 rounded-[2.5rem] flex flex-col items-center gap-3 border-2 border-slate-100 transition-all active:scale-95 shadow-sm hover:border-slate-300"
-                >
+                <button onClick={() => { setBarcodeMode(true); fileInput.current?.click(); }} className="bg-white p-8 rounded-[2.5rem] flex flex-col items-center gap-3 border-2 border-slate-100 transition-all active:scale-95 shadow-sm hover:border-emerald-200">
                   <div className="text-3xl">🏷️</div>
-                  <span className="font-bold text-slate-700">Scan Code</span>
+                  <span className="font-bold text-slate-700">Code-barres</span>
                 </button>
               </div>
               <input type="file" ref={fileInput} className="hidden" accept="image/*" onChange={onFileChange} />
             </div>
 
-            {/* Suggestions rapides */}
-            <div className="mt-12 px-10 pb-12">
-              <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6 text-center">Suggestions</h3>
-              <div className="flex flex-wrap justify-center gap-2">
-                {['Bouteille lait', 'Pile', 'Ampoule', 'Yaourt'].map(tag => (
-                  <button key={tag} onClick={() => { setQuery(tag); handleProcess(tag); }} className="px-5 py-2.5 bg-white rounded-full text-xs font-bold text-slate-500 shadow-sm border border-slate-100 hover:text-emerald-600 hover:border-emerald-200 transition-colors">
-                    {tag}
-                  </button>
-                ))}
-              </div>
+            {/* Contenu statique pour AdSense (Contenu de valeur) */}
+            <div className="mt-16 px-8 space-y-12 pb-20">
+              <section>
+                <h2 className="text-xl font-black text-slate-900 mb-4">Pourquoi bien trier ?</h2>
+                <p className="text-slate-600 text-sm leading-relaxed mb-4">
+                  En France, le tri sélectif permet de transformer vos déchets en nouvelles ressources. Un emballage mal trié peut souiller toute une benne de recyclage. EcoTri utilise l'intelligence artificielle pour vous donner la consigne exacte selon les normes françaises de 2025.
+                </p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-emerald-50 p-4 rounded-2xl">
+                    <span className="block text-emerald-600 font-black text-xl mb-1">90%</span>
+                    <span className="text-[10px] uppercase font-black text-emerald-800 tracking-wider">du verre recyclé</span>
+                  </div>
+                  <div className="bg-blue-50 p-4 rounded-2xl">
+                    <span className="block text-blue-600 font-black text-xl mb-1">75%</span>
+                    <span className="text-[10px] uppercase font-black text-blue-800 tracking-wider">de l'acier recyclé</span>
+                  </div>
+                </div>
+              </section>
+
+              <section className="bg-slate-900 rounded-[3rem] p-8 text-white">
+                <h2 className="text-lg font-black mb-4">Comment ça marche ?</h2>
+                <ul className="space-y-4">
+                  <li className="flex gap-4">
+                    <span className="w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center text-[10px] font-black shrink-0">1</span>
+                    <p className="text-xs text-slate-300">Notre IA analyse la composition de votre objet.</p>
+                  </li>
+                  <li className="flex gap-4">
+                    <span className="w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center text-[10px] font-black shrink-0">2</span>
+                    <p className="text-xs text-slate-300">Elle consulte les règles de tri (Citeo, ADEME).</p>
+                  </li>
+                  <li className="flex gap-4">
+                    <span className="w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center text-[10px] font-black shrink-0">3</span>
+                    <p className="text-xs text-slate-300">Elle localise le point de collecte le plus proche.</p>
+                  </li>
+                </ul>
+              </section>
+
+              <section>
+                <h2 className="text-xl font-black text-slate-900 mb-4">Questions fréquentes</h2>
+                <div className="space-y-6">
+                  <div>
+                    <h4 className="font-black text-sm text-slate-800 mb-1">Dois-je laver les emballages ?</h4>
+                    <p className="text-xs text-slate-500">Non, il suffit de bien les vider. Trop d'eau gaspille une ressource précieuse.</p>
+                  </div>
+                  <div>
+                    <h4 className="font-black text-sm text-slate-800 mb-1">Le bouchon reste-t-il sur la bouteille ?</h4>
+                    <p className="text-xs text-slate-500">Oui, laissez les bouchons sur les bouteilles en plastique pour qu'ils soient recyclés ensemble.</p>
+                  </div>
+                </div>
+              </section>
             </div>
           </div>
         ) : (
           <ResultCard result={result} userLocation={location} onReset={() => { setResult(null); setQuery(''); }} />
         )}
 
-        {/* Overlay d'analyse */}
         {isAnalyzing && (
           <div className="fixed inset-0 bg-white/95 backdrop-blur-xl z-[100] flex flex-col items-center justify-center p-10 text-center animate-in">
             <div className="relative w-40 h-40 mb-10">

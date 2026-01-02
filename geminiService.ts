@@ -3,15 +3,11 @@ import { SortingResult, BinType, CollectionPoint } from "./types";
 
 /**
  * Analyse un déchet ou un code-barres via Gemini.
- * On initialise l'instance GoogleGenAI à chaque appel pour utiliser la clé sélectionnée.
  */
 export const analyzeWaste = async (input: string | { data: string, mimeType: string }, isBarcode: boolean = false): Promise<SortingResult | null> => {
   try {
     const apiKey = process.env.API_KEY;
-    if (!apiKey) {
-      console.error("Clé API manquante dans l'environnement.");
-      return null;
-    }
+    if (!apiKey) throw new Error("Clé API manquante.");
 
     const ai = new GoogleGenAI({ apiKey });
     let parts: any[] = [];
@@ -32,7 +28,7 @@ export const analyzeWaste = async (input: string | { data: string, mimeType: str
       model: "gemini-3-flash-preview",
       contents: { parts },
       config: {
-        systemInstruction: "Tu es un expert en tri sélectif français. Réponds exclusivement au format JSON. Si l'objet est inconnu, essaie de deviner sa catégorie principale. Bacs acceptés : JAUNE, VERT, GRIS, COMPOST, DECHETTERIE, POINT_APPORT.",
+        systemInstruction: "Tu es un expert en tri sélectif français. Réponds exclusivement au format JSON. Bacs acceptés : JAUNE, VERT, GRIS, COMPOST, DECHETTERIE, POINT_APPORT.",
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
@@ -54,8 +50,12 @@ export const analyzeWaste = async (input: string | { data: string, mimeType: str
     
     return JSON.parse(resultText) as SortingResult;
   } catch (e: any) { 
-    console.error("Erreur lors de l'analyse Gemini:", e);
-    return null; 
+    console.error("Erreur Gemini:", e);
+    if (e.message?.includes("entity was not found") || e.message?.includes("404")) {
+      // @ts-ignore
+      window.aistudio?.openSelectKey();
+    }
+    throw e; 
   }
 };
 
@@ -70,14 +70,10 @@ export const findNearbyPoints = async (binType: BinType, lat: number, lng: numbe
     const ai = new GoogleGenAI({ apiKey });
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
-      contents: `Où se trouvent les points de collecte les plus proches pour "${binType}" ? Position actuelle : lat ${lat}, lng ${lng}.`,
+      contents: `Où jeter mes déchets de type ${binType} ? Position: lat ${lat}, lng ${lng}.`,
       config: { 
         tools: [{ googleMaps: {} }], 
-        toolConfig: { 
-          retrievalConfig: { 
-            latLng: { latitude: lat, longitude: lng } 
-          } 
-        } 
+        toolConfig: { retrievalConfig: { latLng: { latitude: lat, longitude: lng } } } 
       }
     });
     
@@ -92,7 +88,6 @@ export const findNearbyPoints = async (binType: BinType, lat: number, lng: numbe
       }))
       .filter((p: any) => p.lat !== 0);
   } catch (e) { 
-    console.error("Erreur Google Maps Grounding:", e);
     return []; 
   }
 };
@@ -109,7 +104,7 @@ export const generateWasteImage = async (itemName: string): Promise<string | nul
     const response = await ai.models.generateContent({
       model: 'gemini-3-pro-image-preview',
       contents: {
-        parts: [{ text: `A clean 3D isometric icon of ${itemName} for a recycling app, professional studio lighting, isolated on white background.` }]
+        parts: [{ text: `A clean 3D isometric icon of ${itemName} for a recycling app, professional lighting, white background.` }]
       },
       config: {
         imageConfig: { aspectRatio: "1:1", imageSize: "1K" }
@@ -119,7 +114,6 @@ export const generateWasteImage = async (itemName: string): Promise<string | nul
     const part = response.candidates?.[0]?.content?.parts.find(p => p.inlineData);
     return part ? `data:image/png;base64,${part.inlineData.data}` : null;
   } catch (e) { 
-    console.error("Erreur Génération Image:", e);
     return null; 
   }
 };
