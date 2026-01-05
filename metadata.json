@@ -1,10 +1,10 @@
 
 {
   "requestFramePermissions": [
-    "geolocation",
     "camera",
-    "microphone"
+    "microphone",
+    "geolocation"
   ],
   "name": "EcoTri - Guide de Tri Intelligent",
-  "description": "Identifiez vos déchets instantanément par texte, voix ou photo."
+  "description": "Identifiez vos déchets instantanément par texte, voix ou photo avec l'IA Gemini."
 }

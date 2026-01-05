@@ -16,21 +16,20 @@ export const analyzeWaste = async (input: string | { data: string, mimeType: str
     const isImage = typeof input !== 'string';
     
     const parts = isImage 
-      ? [{ inlineData: input }, { text: "Analyse ce déchet pour le tri en France (normes 2025). Soyez précis sur le type de matière." }]
-      : [{ text: `Consigne de tri officielle France 2025 pour : "${input}".` }];
+      ? [{ inlineData: input }, { text: "Analyse ce déchet pour le tri en France (normes 2025). Calcule aussi son impact écologique s'il est trié correctement." }]
+      : [{ text: `Consigne de tri officielle France 2025 pour : "${input}". Calcule aussi l'impact écologique du recyclage de cet objet.` }];
 
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: { parts },
       config: {
-        systemInstruction: `Tu es EcoTri, expert français du tri sélectif. 
-        DIRECTIVES CRITIQUES :
-        1. Réponds UNIQUEMENT en JSON. 
-        2. Bacs autorisés : JAUNE, VERT, GRIS, COMPOST, DECHETTERIE, POINT_APPORT.
-        3. COHÉRENCE : Si le déchet est une pile, batterie, ampoule ou cartouche d'encre, choisis obligatoirement POINT_APPORT.
-        4. EXPLICATION : Pour POINT_APPORT, mentionne toujours explicitement 'les bacs de collecte à l'entrée des supermarchés ou commerces'.
-        5. Pour les encombrants ou produits dangereux (peinture, solvants), choisis DECHETTERIE.
-        6. Si un déchet va en POINT_APPORT, l'explication doit être cohérente avec cette destination.`,
+        systemInstruction: `Tu es EcoTri, expert français du tri sélectif et de l'écologie.
+        DIRECTIVES :
+        1. Réponds en JSON uniquement.
+        2. Bacs : JAUNE, VERT, GRIS, COMPOST, DECHETTERIE, POINT_APPORT.
+        3. IMPACT : Estime de manière réaliste (basé sur les moyennes ADEME) le CO2 économisé (en g), l'eau (en L) et l'équivalent énergie.
+        4. QUESTIONS : Suggère 3 questions que l'utilisateur pourrait se poser spécifiquement sur ce déchet (ex: "Faut-il laver le pot ?", "Et si le couvercle est en métal ?").
+        5. COHÉRENCE : Piles/Batteries/Ampoules -> POINT_APPORT obligatoire avec mention supermarché.`,
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
@@ -40,9 +39,22 @@ export const analyzeWaste = async (input: string | { data: string, mimeType: str
             explanation: { type: Type.STRING },
             tips: { type: Type.ARRAY, items: { type: Type.STRING } },
             isRecyclable: { type: Type.BOOLEAN },
-            zeroWasteAlternative: { type: Type.STRING }
+            zeroWasteAlternative: { type: Type.STRING },
+            impact: {
+              type: Type.OBJECT,
+              properties: {
+                co2Saved: { type: Type.NUMBER },
+                waterSaved: { type: Type.NUMBER },
+                energySaved: { type: Type.STRING }
+              },
+              required: ["co2Saved", "waterSaved", "energySaved"]
+            },
+            suggestedQuestions: {
+              type: Type.ARRAY,
+              items: { type: Type.STRING }
+            }
           },
-          required: ["itemName", "bin", "explanation", "tips", "isRecyclable"]
+          required: ["itemName", "bin", "explanation", "tips", "isRecyclable", "impact", "suggestedQuestions"]
         }
       }
     });
@@ -63,7 +75,7 @@ export const findNearbyPoints = async (binType: BinType, lat: number, lng: numbe
   try {
     const ai = getClient();
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-3-pro-preview",
       contents: `Donne-moi les 3 points de collecte les plus proches pour le type de déchet ${binType} près de ma position (lat:${lat}, lng:${lng}).`,
       config: { 
         tools: [{ googleMaps: {} }], 

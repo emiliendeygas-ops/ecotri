@@ -17,6 +17,7 @@ export default function App() {
   const [query, setQuery] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isCameraActive, setIsCameraActive] = useState(false);
+  const [isListening, setIsListening] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<SortingResult | null>(null);
   const [location, setLocation] = useState<{lat: number, lng: number} | null>(null);
@@ -61,7 +62,9 @@ export default function App() {
   };
 
   const handleProcess = async (input: string | { data: string, mimeType: string }) => {
-    if (!input) return;
+    const textInput = typeof input === 'string' ? input.trim() : null;
+    if (typeof input === 'string' && !textInput) return;
+    
     setError(null);
     setIsAnalyzing(true);
     setIsCameraActive(false);
@@ -72,7 +75,6 @@ export default function App() {
         setResult(res);
         addToHistory(res);
         
-        // Background tasks
         generateWasteImage(res.itemName).then(img => {
           if (img) setResult(prev => prev ? { ...prev, imageUrl: img } : null);
         });
@@ -89,11 +91,40 @@ export default function App() {
       if (err.message === "API_KEY_INVALID") {
         setError("Clé API non configurée ou invalide.");
       } else {
-        setError("Impossible d'analyser ce déchet. Réessayez.");
+        setError("Désolé, je ne reconnais pas cet objet. Essayez d'être plus précis.");
       }
     } finally {
       setIsAnalyzing(false);
     }
+  };
+
+  const startVoiceSearch = () => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      setError("Recherche vocale non supportée sur ce navigateur.");
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'fr-FR';
+    recognition.start();
+    setIsListening(true);
+
+    recognition.onresult = (event: any) => {
+      const transcript = event.results[0][0].transcript;
+      setQuery(transcript);
+      handleProcess(transcript);
+      setIsListening(false);
+    };
+
+    recognition.onerror = () => {
+      setIsListening(false);
+      setError("Erreur de reconnaissance vocale.");
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+    };
   };
 
   const startCamera = async () => {
@@ -115,7 +146,6 @@ export default function App() {
         context.drawImage(videoRef.current, 0, 0);
         const base64Data = canvasRef.current.toDataURL('image/jpeg', 0.8).split(',')[1];
         
-        // Stop camera
         const stream = videoRef.current.srcObject as MediaStream;
         stream.getTracks().forEach(t => t.stop());
         
@@ -133,8 +163,9 @@ export default function App() {
         {!result ? (
           <div className="flex flex-col px-6 pt-10 pb-20 space-y-10 animate-in">
             <div className="text-center space-y-3">
-              <div className="inline-flex items-center justify-center p-6 bg-emerald-50 rounded-[2.5rem] mb-2 shadow-inner">
-                <span className="text-5xl animate-bounce">♻️</span>
+              <div className="inline-flex items-center justify-center p-6 bg-emerald-50 rounded-[2.5rem] mb-2 shadow-inner relative group">
+                <span className="text-5xl group-hover:scale-110 transition-transform cursor-default">♻️</span>
+                <div className="absolute inset-0 bg-emerald-200/20 blur-2xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
               </div>
               <h1 className="text-4xl font-[900] text-slate-900 tracking-tight leading-none">
                 Le tri <span className="text-emerald-600">intelligent</span>
@@ -144,28 +175,37 @@ export default function App() {
 
             <div className="space-y-6">
               <div className="relative group">
-                <input 
-                  type="text" 
-                  value={query} 
-                  onChange={e => setQuery(e.target.value)} 
-                  onKeyDown={e => e.key === 'Enter' && handleProcess(query)}
-                  placeholder="Que voulez-vous trier ?" 
-                  className="w-full bg-white rounded-[2rem] py-7 pl-8 pr-32 text-lg font-bold shadow-2xl shadow-slate-200/50 border-2 border-transparent focus:border-emerald-500 transition-all outline-none" 
-                />
-                <div className="absolute right-3 top-3 bottom-3 flex gap-2">
-                  <button 
-                    onClick={startCamera}
-                    className="aspect-square bg-slate-50 text-slate-400 rounded-2xl flex items-center justify-center hover:bg-emerald-50 hover:text-emerald-600 transition-colors shadow-sm"
-                  >
-                    📸
-                  </button>
-                  <button 
-                    onClick={() => handleProcess(query)}
-                    disabled={!query.trim()}
-                    className="bg-emerald-600 text-white px-6 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-emerald-200 disabled:opacity-30 disabled:shadow-none active:scale-95 transition-all"
-                  >
-                    GO
-                  </button>
+                <div className="absolute -inset-1 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-[2.2rem] blur opacity-10 group-focus-within:opacity-25 transition duration-1000"></div>
+                <div className="relative">
+                  <input 
+                    type="text" 
+                    value={query} 
+                    onChange={e => setQuery(e.target.value)} 
+                    onKeyDown={e => e.key === 'Enter' && handleProcess(query)}
+                    placeholder="Que voulez-vous trier ?" 
+                    className="w-full bg-white rounded-[2rem] py-7 pl-8 pr-40 text-lg font-bold shadow-2xl shadow-slate-200/30 border-2 border-transparent focus:border-emerald-500 transition-all outline-none" 
+                  />
+                  <div className="absolute right-3 top-3 bottom-3 flex gap-2">
+                    <button 
+                      onClick={startVoiceSearch}
+                      className={`aspect-square w-12 rounded-2xl flex items-center justify-center transition-all shadow-sm ${isListening ? 'bg-red-500 text-white animate-pulse' : 'bg-slate-50 text-slate-400 hover:bg-emerald-50 hover:text-emerald-600'}`}
+                    >
+                      {isListening ? '🎙️' : '🎤'}
+                    </button>
+                    <button 
+                      onClick={startCamera}
+                      className="aspect-square w-12 bg-slate-50 text-slate-400 rounded-2xl flex items-center justify-center hover:bg-emerald-50 hover:text-emerald-600 transition-colors shadow-sm"
+                    >
+                      📸
+                    </button>
+                    <button 
+                      onClick={() => handleProcess(query)}
+                      disabled={!query.trim()}
+                      className="bg-emerald-600 text-white px-5 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-emerald-200 disabled:opacity-30 disabled:shadow-none active:scale-95 transition-all"
+                    >
+                      GO
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -180,7 +220,7 @@ export default function App() {
                   <button 
                     key={i} 
                     onClick={() => { setQuery(s.label); handleProcess(s.label); }}
-                    className="flex items-center gap-2 bg-white border border-slate-100 px-5 py-3 rounded-2xl text-[11px] font-black text-slate-500 hover:bg-emerald-50 hover:border-emerald-200 hover:text-emerald-700 transition-all shadow-sm"
+                    className="flex items-center gap-2 bg-white border border-slate-100 px-5 py-3 rounded-2xl text-[11px] font-black text-slate-500 hover:bg-emerald-50 hover:border-emerald-200 hover:text-emerald-700 transition-all shadow-sm active:scale-95"
                   >
                     <span>{s.icon}</span> {s.label}
                   </button>
@@ -214,6 +254,7 @@ export default function App() {
             result={result} 
             userLocation={location} 
             onReset={() => { setResult(null); setQuery(''); }} 
+            onAskQuestion={(q) => { setQuery(q); handleProcess(q); }}
           />
         )}
 

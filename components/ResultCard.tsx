@@ -5,7 +5,14 @@ import { BIN_MAPPING } from '../constants';
 import { MapView } from './MapView';
 import { AdBanner } from './AdBanner';
 
-export const ResultCard: React.FC<{ result: SortingResult, userLocation?: any, onReset: () => void }> = ({ result, userLocation, onReset }) => {
+interface ResultCardProps {
+  result: SortingResult;
+  userLocation?: any;
+  onReset: () => void;
+  onAskQuestion: (q: string) => void;
+}
+
+export const ResultCard: React.FC<ResultCardProps> = ({ result, userLocation, onReset, onAskQuestion }) => {
   const binInfo = BIN_MAPPING[result.bin] || BIN_MAPPING['GRIS'];
   const [activePoint, setActivePoint] = useState(0);
 
@@ -25,16 +32,16 @@ export const ResultCard: React.FC<{ result: SortingResult, userLocation?: any, o
     } else {
       try {
         await navigator.clipboard.writeText(text);
-        alert('Consigne copiée dans le presse-papier !');
+        alert('Consigne copiée !');
       } catch (err) {
-        alert('Erreur lors de la copie.');
+        alert('Erreur.');
       }
     }
   };
 
   return (
     <div className="animate-in pb-12">
-      <div className={`${binInfo.color} p-12 text-center relative overflow-hidden`}>
+      <div className={`${binInfo.color} p-12 text-center relative overflow-hidden transition-colors duration-500`}>
         <div className="absolute top-0 right-0 p-10 opacity-10 pointer-events-none text-9xl">♻️</div>
         
         <div className="mb-8 flex justify-center">
@@ -67,13 +74,35 @@ export const ResultCard: React.FC<{ result: SortingResult, userLocation?: any, o
             <button 
               onClick={handleShare}
               className="w-10 h-10 bg-slate-50 rounded-full flex items-center justify-center text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all shadow-sm active:scale-90"
-              title="Partager cette consigne"
             >
               <span className="text-lg">📤</span>
             </button>
           </div>
           <p className="text-slate-800 font-bold text-xl leading-snug">{result.explanation}</p>
         </section>
+
+        {result.impact && (
+          <section className="bg-emerald-50/50 p-6 rounded-[2.5rem] border border-emerald-100 flex flex-col gap-4">
+            <h3 className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Votre impact écologique</h3>
+            <div className="grid grid-cols-3 gap-2">
+              <div className="bg-white p-3 rounded-2xl shadow-sm text-center">
+                <span className="block text-xl mb-1">☁️</span>
+                <span className="block text-[10px] font-black text-slate-400 uppercase">CO2</span>
+                <span className="text-sm font-bold text-emerald-600">-{result.impact.co2Saved}g</span>
+              </div>
+              <div className="bg-white p-3 rounded-2xl shadow-sm text-center">
+                <span className="block text-xl mb-1">💧</span>
+                <span className="block text-[10px] font-black text-slate-400 uppercase">Eau</span>
+                <span className="text-sm font-bold text-emerald-600">{result.impact.waterSaved}L</span>
+              </div>
+              <div className="bg-white p-3 rounded-2xl shadow-sm text-center">
+                <span className="block text-xl mb-1">⚡</span>
+                <span className="block text-[10px] font-black text-slate-400 uppercase">Énergie</span>
+                <span className="text-[9px] font-bold text-emerald-600 leading-tight">{result.impact.energySaved}</span>
+              </div>
+            </div>
+          </section>
+        )}
 
         {result.tips.length > 0 && (
           <section className="bg-slate-50 p-6 rounded-[2.5rem] border border-slate-100">
@@ -88,14 +117,30 @@ export const ResultCard: React.FC<{ result: SortingResult, userLocation?: any, o
           </section>
         )}
 
+        {result.suggestedQuestions && result.suggestedQuestions.length > 0 && (
+          <section>
+            <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Questions fréquentes</h3>
+            <div className="space-y-2">
+              {result.suggestedQuestions.map((q, i) => (
+                <button 
+                  key={i}
+                  onClick={() => onAskQuestion(q)}
+                  className="w-full text-left p-4 bg-white border border-slate-100 rounded-2xl text-slate-600 text-sm font-bold hover:bg-slate-50 transition-colors flex justify-between items-center group"
+                >
+                  <span>{q}</span>
+                  <span className="text-emerald-300 group-hover:text-emerald-500 transition-colors">→</span>
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
+
         {result.nearbyPoints && result.nearbyPoints.length > 0 && userLocation && (
           <section className="space-y-6">
             <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex justify-between">
               Points de collecte <span>📍</span>
             </h3>
-            
             <MapView points={[result.nearbyPoints[activePoint]]} userLocation={userLocation} />
-            
             <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
               {result.nearbyPoints.map((p, i) => (
                 <button 

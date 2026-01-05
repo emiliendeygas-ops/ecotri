@@ -15,6 +15,12 @@ export interface CollectionPoint {
   lng?: number;
 }
 
+export interface EcoImpact {
+  co2Saved: number; // en grammes
+  waterSaved: number; // en litres
+  energySaved: string; // ex: "2h d'ampoule LED"
+}
+
 export interface SortingResult {
   itemName: string;
   bin: BinType;
@@ -24,6 +30,8 @@ export interface SortingResult {
   imageUrl?: string;
   zeroWasteAlternative?: string;
   nearbyPoints?: CollectionPoint[];
+  impact?: EcoImpact;
+  suggestedQuestions?: string[];
 }
 
 export interface HistoryItem {
