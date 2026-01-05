@@ -1,4 +1,3 @@
-
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
@@ -6,7 +5,11 @@ import path from 'path';
 export default defineConfig({
   plugins: [react()],
   define: {
-    // On injecte la clé directement comme une chaîne globale pour éviter les problèmes d'objet 'process'
+    // Fournit un objet global pour les bibliothèques (comme Leaflet ou GenAI) qui en ont besoin
+    'global': 'window',
+    // Assure que process.env est accessible comme un objet
+    'process.env': {},
+    // Injecte la clé API spécifique depuis les secrets du build
     'process.env.API_KEY': JSON.stringify(process.env.API_KEY || '')
   },
   resolve: {
