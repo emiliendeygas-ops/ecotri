@@ -6,8 +6,10 @@ import path from 'path';
 export default defineConfig({
   plugins: [react()],
   define: {
-    // Injecte les variables d'environnement pour qu'elles soient accessibles via process.env
-    'process.env': process.env
+    // On définit process.env comme un objet vide par défaut pour éviter les plantages
+    'process.env': {},
+    // On injecte spécifiquement la clé API si elle est présente durant le build
+    'process.env.API_KEY': JSON.stringify(process.env.API_KEY || '')
   },
   resolve: {
     alias: {

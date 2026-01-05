@@ -10,16 +10,18 @@ export const ApiKeyGuard: React.FC<ApiKeyGuardProps> = ({ children }) => {
 
   useEffect(() => {
     const verifyKey = async () => {
-      // 1. Vérification de la clé d'environnement (Firebase Secrets / GCP)
-      // Protection contre process undefined
-      const envKey = typeof process !== 'undefined' && process.env ? process.env.API_KEY : undefined;
-      
-      if (envKey && envKey !== 'undefined' && envKey.length > 10) {
-        setStatus('ready');
-        return;
+      // 1. Vérification de la clé injectée au build (Production)
+      try {
+        const envKey = process.env.API_KEY;
+        if (envKey && envKey.length > 10) {
+          setStatus('ready');
+          return;
+        }
+      } catch (e) {
+        // process.env peut ne pas être défini du tout dans certains cas
       }
 
-      // 2. Vérification du bridge AI Studio
+      // 2. Vérification du bridge AI Studio (Développement)
       const aistudio = (window as any).aistudio;
       if (aistudio && typeof aistudio.hasSelectedApiKey === 'function') {
         try {
@@ -44,14 +46,13 @@ export const ApiKeyGuard: React.FC<ApiKeyGuardProps> = ({ children }) => {
     if (aistudio && typeof aistudio.openSelectKey === 'function') {
       try {
         await aistudio.openSelectKey();
-        // On assume le succès pour éviter les race conditions
         setStatus('ready');
       } catch (e) {
         console.error("Erreur sélecteur:", e);
         alert("Erreur lors de l'ouverture du sélecteur.");
       }
     } else {
-      alert("Le sélecteur de clé n'est pas disponible. Si vous êtes en production, la clé doit être configurée dans les secrets Firebase.");
+      alert("Le sélecteur de clé n'est disponible qu'en environnement de développement (AI Studio). Pour la version publiée, configurez le secret API_KEY dans GitHub avant le déploiement.");
     }
   };
 
@@ -71,7 +72,7 @@ export const ApiKeyGuard: React.FC<ApiKeyGuardProps> = ({ children }) => {
         </div>
         <h2 className="text-3xl font-[900] text-slate-900 mb-4 tracking-tight">EcoTri nécessite une clé</h2>
         <p className="text-slate-500 font-medium mb-10 max-w-sm leading-relaxed">
-          Pour analyser vos déchets avec l'intelligence artificielle, connectez votre projet Google Cloud.
+          La clé API n'a pas été trouvée. Si vous voyez ce message en production, vérifiez vos secrets GitHub.
         </p>
         
         <div className="space-y-4 w-full max-w-sm">
@@ -79,24 +80,15 @@ export const ApiKeyGuard: React.FC<ApiKeyGuardProps> = ({ children }) => {
             onClick={handleSelectKey}
             className="w-full bg-emerald-600 text-white py-6 rounded-3xl font-black text-lg shadow-xl shadow-emerald-100 active:scale-95 transition-all hover:bg-emerald-700"
           >
-            Sélectionner ma Clé API
+            Utiliser le sélecteur (Dev uniquement)
           </button>
           
           <div className="p-6 bg-white rounded-3xl border border-slate-100 text-left">
-            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Note sur la facturation</h4>
+            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Instructions Production</h4>
             <p className="text-xs text-slate-600 leading-normal">
-              Utilisez un projet avec facturation activée pour profiter des cartes et de la génération d'images.
+              Ajoutez un secret nommé <strong>API_KEY</strong> dans les paramètres de votre dépôt GitHub pour activer l'IA en production.
             </p>
           </div>
-          
-          <a 
-            href="https://ai.google.dev/gemini-api/docs/billing" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="block text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-emerald-600 transition-colors"
-          >
-            En savoir plus sur la facturation ↗
-          </a>
         </div>
       </div>
     );
