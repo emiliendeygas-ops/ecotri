@@ -6,9 +6,7 @@ import path from 'path';
 export default defineConfig({
   plugins: [react()],
   define: {
-    // On définit process.env comme un objet vide par défaut pour éviter les plantages
-    'process.env': {},
-    // On injecte spécifiquement la clé API si elle est présente durant le build
+    // On injecte la clé directement comme une chaîne globale pour éviter les problèmes d'objet 'process'
     'process.env.API_KEY': JSON.stringify(process.env.API_KEY || '')
   },
   resolve: {

@@ -3,10 +3,12 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { SortingResult, BinType, CollectionPoint } from "../types";
 
 const getClient = () => {
-  // Protection contre le crash si process n'est pas encore défini par Vite
-  const apiKey = typeof process !== 'undefined' && process.env ? process.env.API_KEY : undefined;
+  // En production, process.env.API_KEY est remplacé par la chaîne réelle lors du build
+  const apiKey = process.env.API_KEY;
   
-  if (!apiKey) throw new Error("API_KEY_INVALID");
+  if (!apiKey || apiKey === '') {
+    throw new Error("API_KEY_INVALID");
+  }
   return new GoogleGenAI({ apiKey });
 };
 
@@ -45,7 +47,8 @@ export const analyzeWaste = async (input: string | { data: string, mimeType: str
     return JSON.parse(text) as SortingResult;
   } catch (error: any) {
     console.error("Gemini Error:", error);
-    if (error.message?.includes("entity was not found") || error.message === "API_KEY_INVALID") {
+    // On renvoie une erreur explicite si la clé est rejetée par le serveur
+    if (error.message?.toLowerCase().includes("key") || error.message?.includes("403") || error.message === "API_KEY_INVALID") {
       throw new Error("API_KEY_INVALID");
     }
     return null;
