@@ -3,9 +3,7 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { SortingResult, BinType, CollectionPoint } from "../types";
 
 const getClient = () => {
-  // En production, process.env.API_KEY est remplacé par la chaîne réelle lors du build
   const apiKey = process.env.API_KEY;
-  
   if (!apiKey || apiKey === '') {
     throw new Error("API_KEY_INVALID");
   }
@@ -25,7 +23,14 @@ export const analyzeWaste = async (input: string | { data: string, mimeType: str
       model: "gemini-3-flash-preview",
       contents: { parts },
       config: {
-        systemInstruction: "Tu es EcoTri, expert français du tri. Réponds en JSON uniquement. Bacs : JAUNE, VERT, GRIS, COMPOST, DECHETTERIE, POINT_APPORT.",
+        systemInstruction: `Tu es EcoTri, expert français du tri sélectif. 
+        DIRECTIVES CRITIQUES :
+        1. Réponds UNIQUEMENT en JSON. 
+        2. Bacs autorisés : JAUNE, VERT, GRIS, COMPOST, DECHETTERIE, POINT_APPORT.
+        3. COHÉRENCE : Si le déchet est une pile, batterie, ampoule ou cartouche d'encre, choisis obligatoirement POINT_APPORT.
+        4. EXPLICATION : Pour POINT_APPORT, mentionne toujours explicitement 'les bacs de collecte à l'entrée des supermarchés ou commerces'.
+        5. Pour les encombrants ou produits dangereux (peinture, solvants), choisis DECHETTERIE.
+        6. Si un déchet va en POINT_APPORT, l'explication doit être cohérente avec cette destination.`,
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
@@ -47,7 +52,6 @@ export const analyzeWaste = async (input: string | { data: string, mimeType: str
     return JSON.parse(text) as SortingResult;
   } catch (error: any) {
     console.error("Gemini Error:", error);
-    // On renvoie une erreur explicite si la clé est rejetée par le serveur
     if (error.message?.toLowerCase().includes("key") || error.message?.includes("403") || error.message === "API_KEY_INVALID") {
       throw new Error("API_KEY_INVALID");
     }

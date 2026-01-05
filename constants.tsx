@@ -1,3 +1,4 @@
+
 import { BinType } from './types';
 
 export const BIN_MAPPING = {
@@ -5,6 +6,6 @@ export const BIN_MAPPING = {
   [BinType.VERT]: { label: 'Bac Verre', color: 'bg-[#059669]', text: 'text-white', desc: 'Bouteilles, bocaux & flacons' },
   [BinType.GRIS]: { label: 'Bac Gris', color: 'bg-[#475569]', text: 'text-white', desc: 'Ordures ménagères non recyclables' },
   [BinType.COMPOST]: { label: 'Compost', color: 'bg-[#78350F]', text: 'text-white', desc: 'Déchets alimentaires & végétaux' },
-  [BinType.DECHETTERIE]: { label: 'Déchetterie', color: 'bg-[#2563EB]', text: 'text-white', desc: 'Encombrants & produits dangereux' },
-  [BinType.POINT_APPORT]: { label: 'Point Apport', color: 'bg-[#7C3AED]', text: 'text-white', desc: 'Piles, ampoules, textiles, etc.' },
+  [BinType.DECHETTERIE]: { label: 'Déchetterie', color: 'bg-[#2563EB]', text: 'text-white', desc: 'Encombrants, gravats & toxiques' },
+  [BinType.POINT_APPORT]: { label: 'Borne de Collecte', color: 'bg-[#7C3AED]', text: 'text-white', desc: 'Piles, ampoules, textile (Supermarchés)' },
 };
