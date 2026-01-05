@@ -23,7 +23,6 @@ export const ResultCard: React.FC<{ result: SortingResult, userLocation?: any, o
         console.log('Partage annulé');
       }
     } else {
-      // Fallback : Copier dans le presse-papier
       try {
         await navigator.clipboard.writeText(text);
         alert('Consigne copiée dans le presse-papier !');

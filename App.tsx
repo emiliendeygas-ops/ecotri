@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Layout } from './components/Layout';
 import { ResultCard } from './components/ResultCard';
 import { ApiKeyGuard } from './ApiKeyGuard';
-import { analyzeWaste, generateWasteImage, findNearbyPoints } from './geminiService';
+import { analyzeWaste, generateWasteImage, findNearbyPoints } from './services/geminiService';
 import { SortingResult, HistoryItem } from './types';
 
 const SUGGESTIONS = [
@@ -28,7 +28,6 @@ export default function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
-    // Charger l'historique et les points
     const savedHistory = localStorage.getItem('ecotri_history');
     if (savedHistory) setHistory(JSON.parse(savedHistory));
 
@@ -54,7 +53,6 @@ export default function App() {
     setHistory(newHistory);
     localStorage.setItem('ecotri_history', JSON.stringify(newHistory));
 
-    // Gain de points
     const newPoints = ecoPoints + 10;
     setEcoPoints(newPoints);
     localStorage.setItem('ecotri_points', newPoints.toString());
