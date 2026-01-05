@@ -14,14 +14,14 @@ export const analyzeWaste = async (input: string | { data: string, mimeType: str
     const isImage = typeof input !== 'string';
     
     const parts = isImage 
-      ? [{ inlineData: input }, { text: "Identifie précisément ce déchet et donne sa consigne de tri stricte en France (normes 2025)." }]
-      : [{ text: `Consigne de tri officielle France 2025 pour l'objet : "${input}".` }];
+      ? [{ inlineData: input }, { text: "Analyse ce déchet pour le tri en France (normes 2025)." }]
+      : [{ text: `Consigne de tri officielle France 2025 pour : "${input}".` }];
 
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: { parts },
       config: {
-        systemInstruction: "Tu es EcoTri, expert français du tri sélectif. Réponds exclusivement en JSON. Bacs valides : JAUNE, VERT, GRIS, COMPOST, DECHETTERIE, POINT_APPORT.",
+        systemInstruction: "Tu es EcoTri, expert français du tri. Réponds en JSON uniquement. Bacs : JAUNE, VERT, GRIS, COMPOST, DECHETTERIE, POINT_APPORT.",
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
@@ -42,7 +42,7 @@ export const analyzeWaste = async (input: string | { data: string, mimeType: str
     if (!text) return null;
     return JSON.parse(text) as SortingResult;
   } catch (error: any) {
-    console.error("Erreur IA:", error);
+    console.error("Gemini Error:", error);
     if (error.message?.includes("entity was not found") || error.message === "API_KEY_INVALID") {
       throw new Error("API_KEY_INVALID");
     }
@@ -55,7 +55,7 @@ export const findNearbyPoints = async (binType: BinType, lat: number, lng: numbe
     const ai = getClient();
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
-      contents: `Point de collecte pour ${binType} près de lat:${lat}, lng:${lng}.`,
+      contents: `Points de collecte pour ${binType} près de lat:${lat}, lng:${lng}.`,
       config: { 
         tools: [{ googleMaps: {} }], 
         toolConfig: { retrievalConfig: { latLng: { latitude: lat, longitude: lng } } } 
@@ -83,7 +83,7 @@ export const generateWasteImage = async (itemName: string): Promise<string | nul
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash-image',
       contents: { 
-        parts: [{ text: `A clear 3D render icon of ${itemName} on white background.` }] 
+        parts: [{ text: `A clean minimalist 3D isometric icon of ${itemName} on white background.` }] 
       }
     });
 
