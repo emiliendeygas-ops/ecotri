@@ -82,7 +82,7 @@ export default function App() {
           });
         }
       } else {
-        throw new Error("Objet non reconnu. Réessayez avec plus de lumière.");
+        throw new Error("Objet non reconnu.");
       }
     } catch (err: any) {
       setError(err.message === "API_KEY_INVALID" ? "Clé API non valide." : "Une erreur est survenue.");
@@ -122,11 +122,7 @@ export default function App() {
 
   return (
     <ApiKeyGuard>
-      <Layout 
-        points={ecoPoints} 
-        level={userLevel}
-        showPointAnim={showPointAnim}
-      >
+      <Layout points={ecoPoints} level={userLevel} showPointAnim={showPointAnim}>
         {!result ? (
           <div className="flex flex-col px-6 pt-10 pb-20 space-y-10 animate-in">
             <div className="text-center space-y-4">
@@ -218,7 +214,7 @@ export default function App() {
                <span className="text-5xl">🧐</span>
             </div>
             <h2 className="text-2xl font-[900] text-slate-900 mb-2">Identification...</h2>
-            <p className="text-slate-400 font-bold text-[10px] uppercase tracking-widest leading-loose">Notre IA consulte les normes de tri 2025</p>
+            <p className="text-slate-400 font-bold text-[10px] uppercase tracking-widest leading-loose">Consulte les normes de tri 2025</p>
           </div>
         )}
       </Layout>
