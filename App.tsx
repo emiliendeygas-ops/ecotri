@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Layout } from './components/Layout';
 import { ResultCard } from './components/ResultCard';
 import { ApiKeyGuard } from './ApiKeyGuard';
@@ -13,17 +13,30 @@ const SUGGESTIONS = [
   { label: 'Bouteille', icon: '🍾' }
 ];
 
+const GRADES = [
+  { min: 0, label: "Graine de Trieur", icon: "🌱" },
+  { min: 50, label: "Apprenti Écolo", icon: "🌿" },
+  { min: 150, label: "Ami des Bacs", icon: "🏘️" },
+  { min: 300, label: "Trieur de Choc", icon: "⚡" },
+  { min: 500, label: "Héros du Quotidien", icon: "🛡️" },
+  { min: 800, label: "Expert Zéro Déchet", icon: "🎓" },
+  { min: 1200, label: "Maître Recycleur", icon: "🏆" },
+  { min: 2000, label: "Gardien Planète", icon: "🌍" },
+  { min: 5000, label: "Légende EcoTri", icon: "✨" }
+];
+
 export default function App() {
   const [query, setQuery] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [isListening, setIsListening] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<React.ReactNode | null>(null);
   const [result, setResult] = useState<SortingResult | null>(null);
   const [location, setLocation] = useState<{lat: number, lng: number} | null>(null);
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [ecoPoints, setEcoPoints] = useState<number>(0);
   const [showPointAnim, setShowPointAnim] = useState(false);
+  const [isLocating, setIsLocating] = useState(false);
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -35,13 +48,34 @@ export default function App() {
     const savedPoints = localStorage.getItem('ecotri_points');
     if (savedPoints) setEcoPoints(parseInt(savedPoints));
 
+    requestLocation();
+  }, []);
+
+  const requestLocation = () => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         p => setLocation({ lat: p.coords.latitude, lng: p.coords.longitude }),
-        () => console.warn("Localisation non disponible")
+        () => console.warn("Localisation non autorisée")
       );
     }
-  }, []);
+  };
+
+  // Calcul du grade et de la progression
+  const gradeInfo = useMemo(() => {
+    const currentIdx = GRADES.slice().reverse().findIndex(g => ecoPoints >= g.min);
+    const actualIdx = currentIdx === -1 ? 0 : GRADES.length - 1 - currentIdx;
+    const currentGrade = GRADES[actualIdx];
+    const nextGrade = GRADES[actualIdx + 1] || null;
+    
+    let progress = 100;
+    if (nextGrade) {
+      const range = nextGrade.min - currentGrade.min;
+      const gained = ecoPoints - currentGrade.min;
+      progress = Math.min(100, Math.round((gained / range) * 100));
+    }
+
+    return { ...currentGrade, nextMin: nextGrade?.min, progress };
+  }, [ecoPoints]);
 
   const addToHistory = (res: SortingResult) => {
     const newItem: HistoryItem = {
@@ -80,21 +114,70 @@ export default function App() {
         });
         
         if (location) {
-          findNearbyPoints(res.bin, location.lat, location.lng).then(pts => {
-            if (pts?.length) setResult(prev => prev ? { ...prev, nearbyPoints: pts } : null);
-          });
+          fetchPoints(res, location);
         }
       } else {
         throw new Error("Objet non reconnu.");
       }
     } catch (err: any) {
-      if (err.message === "API_KEY_INVALID") {
-        setError("Clé API non configurée ou invalide.");
+      if (err.message === "API_KEY_REFERRER_BLOCKED") {
+        setError(
+          <div className="space-y-3">
+            <p>Cette clé API est limitée à un domaine spécifique et ne peut pas être utilisée ici (aistudio.google.com).</p>
+            <button 
+              onClick={handleSelectKey}
+              className="bg-white text-red-600 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-sm hover:bg-red-50 transition-colors"
+            >
+              Changer de clé API
+            </button>
+          </div>
+        );
+      } else if (err.message === "API_KEY_INVALID") {
+        setError("Clé API invalide ou expirée.");
       } else {
         setError("Désolé, je ne reconnais pas cet objet. Essayez d'être plus précis.");
       }
     } finally {
       setIsAnalyzing(false);
+    }
+  };
+
+  const handleSelectKey = async () => {
+    const aistudio = (window as any).aistudio;
+    if (aistudio && typeof aistudio.openSelectKey === 'function') {
+      try {
+        await aistudio.openSelectKey();
+        window.location.reload();
+      } catch (e) {
+        console.error("Erreur sélecteur:", e);
+      }
+    }
+  };
+
+  const fetchPoints = async (res: SortingResult, loc: {lat: number, lng: number}) => {
+    setIsLocating(true);
+    try {
+      const pts = await findNearbyPoints(res.bin, res.itemName, loc.lat, loc.lng);
+      if (pts?.length) {
+        setResult(prev => prev ? { ...prev, nearbyPoints: pts } : null);
+      }
+    } catch (e) {
+      console.warn("Points introuvables");
+    } finally {
+      setIsLocating(false);
+    }
+  };
+
+  const handleManualLocationFetch = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        p => {
+          const loc = { lat: p.coords.latitude, lng: p.coords.longitude };
+          setLocation(loc);
+          if (result) fetchPoints(result, loc);
+        },
+        () => setError("Impossible d'accéder à votre position. Vérifiez vos réglages.")
+      );
     }
   };
 
@@ -155,11 +238,15 @@ export default function App() {
     }
   };
 
-  const userLevel = ecoPoints < 100 ? "Apprenti" : ecoPoints < 500 ? "Expert" : "Légende Écolo";
-
   return (
     <ApiKeyGuard>
-      <Layout points={ecoPoints} level={userLevel} showPointAnim={showPointAnim}>
+      <Layout 
+        points={ecoPoints} 
+        level={gradeInfo.label} 
+        gradeIcon={gradeInfo.icon}
+        progress={gradeInfo.progress}
+        showPointAnim={showPointAnim}
+      >
         {!result ? (
           <div className="flex flex-col px-6 pt-10 pb-20 space-y-10 animate-in">
             <div className="text-center space-y-3">
@@ -210,8 +297,11 @@ export default function App() {
               </div>
 
               {error && (
-                <div className="bg-red-50 text-red-600 p-4 rounded-2xl text-center font-black text-[10px] uppercase tracking-widest border border-red-100 animate-in">
-                  ⚠️ {error}
+                <div className="bg-red-50 text-red-600 p-6 rounded-[2.5rem] text-center font-bold text-xs border border-red-100 animate-in shadow-sm">
+                  <div className="flex flex-col items-center gap-2">
+                    <span className="text-2xl">⚠️</span>
+                    {error}
+                  </div>
                 </div>
               )}
 
@@ -253,8 +343,10 @@ export default function App() {
           <ResultCard 
             result={result} 
             userLocation={location} 
+            isLocating={isLocating}
             onReset={() => { setResult(null); setQuery(''); }} 
             onAskQuestion={(q) => { setQuery(q); handleProcess(q); }}
+            onRequestLocation={handleManualLocationFetch}
           />
         )}
 

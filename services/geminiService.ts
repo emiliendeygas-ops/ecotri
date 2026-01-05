@@ -5,9 +5,27 @@ import { SortingResult, BinType, CollectionPoint } from "../types";
 const getClient = () => {
   const apiKey = process.env.API_KEY;
   if (!apiKey || apiKey === '') {
-    throw new Error("API_KEY_INVALID");
+    throw new Error("API_KEY_MISSING");
   }
   return new GoogleGenAI({ apiKey });
+};
+
+const handleApiError = (error: any) => {
+  console.error("Gemini API Error Detail:", error);
+  
+  const errorText = error?.message || "";
+  const errorStatus = error?.status || "";
+  
+  // Détection spécifique du blocage par Referrer (Domaine)
+  if (errorText.includes("API_KEY_HTTP_REFERRER_BLOCKED") || errorText.includes("blocked") && errorText.includes("referer")) {
+    throw new Error("API_KEY_REFERRER_BLOCKED");
+  }
+
+  if (errorStatus === "PERMISSION_DENIED" || errorText.includes("403") || errorText.includes("key") || errorText.includes("invalid")) {
+    throw new Error("API_KEY_INVALID");
+  }
+
+  throw error;
 };
 
 export const analyzeWaste = async (input: string | { data: string, mimeType: string }): Promise<SortingResult | null> => {
@@ -63,23 +81,27 @@ export const analyzeWaste = async (input: string | { data: string, mimeType: str
     if (!text) return null;
     return JSON.parse(text) as SortingResult;
   } catch (error: any) {
-    console.error("Gemini Error:", error);
-    if (error.message?.toLowerCase().includes("key") || error.message?.includes("403") || error.message === "API_KEY_INVALID") {
-      throw new Error("API_KEY_INVALID");
-    }
+    handleApiError(error);
     return null;
   }
 };
 
-export const findNearbyPoints = async (binType: BinType, lat: number, lng: number): Promise<CollectionPoint[]> => {
+export const findNearbyPoints = async (binType: BinType, itemName: string, lat: number, lng: number): Promise<CollectionPoint[]> => {
   try {
     const ai = getClient();
     const response = await ai.models.generateContent({
-      model: "gemini-3-pro-preview",
-      contents: `Donne-moi les 3 points de collecte les plus proches pour le type de déchet ${binType} près de ma position (lat:${lat}, lng:${lng}).`,
+      model: "gemini-2.5-flash",
+      contents: `Où puis-je jeter ou recycler mon/ma "${itemName}" (catégorie de tri: ${binType}) à proximité de ma position actuelle ? Donne-moi les adresses précises ou les noms des points de collecte, déchèteries ou bornes.`,
       config: { 
         tools: [{ googleMaps: {} }], 
-        toolConfig: { retrievalConfig: { latLng: { latitude: lat, longitude: lng } } } 
+        toolConfig: { 
+          retrievalConfig: { 
+            latLng: { 
+              latitude: lat, 
+              longitude: lng 
+            } 
+          } 
+        } 
       }
     });
     
@@ -92,8 +114,9 @@ export const findNearbyPoints = async (binType: BinType, lat: number, lng: numbe
         lat: parseFloat(c.maps.uri.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/)?.[1] || "0"),
         lng: parseFloat(c.maps.uri.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/)?.[2] || "0")
       }))
-      .filter((p: any) => p.lat !== 0);
+      .filter((p: any) => p.uri);
   } catch (e) {
+    handleApiError(e);
     return [];
   }
 };

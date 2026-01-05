@@ -8,11 +8,20 @@ import { AdBanner } from './AdBanner';
 interface ResultCardProps {
   result: SortingResult;
   userLocation?: any;
+  isLocating?: boolean;
   onReset: () => void;
   onAskQuestion: (q: string) => void;
+  onRequestLocation: () => void;
 }
 
-export const ResultCard: React.FC<ResultCardProps> = ({ result, userLocation, onReset, onAskQuestion }) => {
+export const ResultCard: React.FC<ResultCardProps> = ({ 
+  result, 
+  userLocation, 
+  isLocating, 
+  onReset, 
+  onAskQuestion,
+  onRequestLocation 
+}) => {
   const binInfo = BIN_MAPPING[result.bin] || BIN_MAPPING['GRIS'];
   const [activePoint, setActivePoint] = useState(0);
 
@@ -117,6 +126,53 @@ export const ResultCard: React.FC<ResultCardProps> = ({ result, userLocation, on
           </section>
         )}
 
+        {/* Section Localisation Dynamique */}
+        <section className="space-y-4">
+          <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex justify-between">
+            Où jeter ? <span>📍</span>
+          </h3>
+          
+          {!userLocation ? (
+            <div className="bg-slate-50 p-8 rounded-[2.5rem] text-center border border-dashed border-slate-200">
+              <span className="text-3xl block mb-3">🌍</span>
+              <p className="text-slate-500 text-sm font-bold mb-6">Autorisez la localisation pour trouver les points de collecte proches de vous.</p>
+              <button 
+                onClick={onRequestLocation}
+                className="bg-emerald-600 text-white px-8 py-4 rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl active:scale-95 transition-all"
+              >
+                Activer la localisation
+              </button>
+            </div>
+          ) : isLocating ? (
+            <div className="bg-slate-50 p-12 rounded-[2.5rem] text-center flex flex-col items-center">
+              <div className="w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+              <p className="text-slate-400 text-xs font-black uppercase tracking-widest">Recherche des bornes...</p>
+            </div>
+          ) : result.nearbyPoints && result.nearbyPoints.length > 0 ? (
+            <div className="space-y-6">
+              <MapView points={[result.nearbyPoints[activePoint]]} userLocation={userLocation} />
+              <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
+                {result.nearbyPoints.map((p, i) => (
+                  <button 
+                    key={i} 
+                    onClick={() => setActivePoint(i)} 
+                    className={`flex-shrink-0 px-5 py-3 rounded-2xl text-[10px] font-black border-2 transition-all ${i === activePoint ? 'bg-slate-900 border-slate-900 text-white shadow-lg' : 'bg-white border-slate-100 text-slate-400'}`}
+                  >
+                    {p.name.length > 18 ? p.name.slice(0, 15) + '...' : p.name}
+                  </button>
+                ))}
+              </div>
+              <a href={result.nearbyPoints[activePoint].uri} target="_blank" rel="noopener noreferrer" className="block text-center bg-emerald-50 text-emerald-700 py-4 rounded-2xl font-black text-sm border border-emerald-100 hover:bg-emerald-100 transition-colors">
+                Itinéraire Google Maps ↗
+              </a>
+            </div>
+          ) : (
+            <div className="bg-slate-50 p-8 rounded-[2.5rem] text-center border border-slate-100">
+              <p className="text-slate-500 text-sm font-bold">Aucun point spécifique trouvé à proximité immédiate pour ce déchet.</p>
+            </div>
+          )}
+        </section>
+
         {result.suggestedQuestions && result.suggestedQuestions.length > 0 && (
           <section>
             <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Questions fréquentes</h3>
@@ -135,32 +191,9 @@ export const ResultCard: React.FC<ResultCardProps> = ({ result, userLocation, on
           </section>
         )}
 
-        {result.nearbyPoints && result.nearbyPoints.length > 0 && userLocation && (
-          <section className="space-y-6">
-            <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex justify-between">
-              Points de collecte <span>📍</span>
-            </h3>
-            <MapView points={[result.nearbyPoints[activePoint]]} userLocation={userLocation} />
-            <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
-              {result.nearbyPoints.map((p, i) => (
-                <button 
-                  key={i} 
-                  onClick={() => setActivePoint(i)} 
-                  className={`flex-shrink-0 px-5 py-3 rounded-2xl text-[10px] font-black border-2 transition-all ${i === activePoint ? 'bg-slate-900 border-slate-900 text-white shadow-lg' : 'bg-white border-slate-100 text-slate-400'}`}
-                >
-                  {p.name.length > 18 ? p.name.slice(0, 15) + '...' : p.name}
-                </button>
-              ))}
-            </div>
-            <a href={result.nearbyPoints[activePoint].uri} target="_blank" rel="noopener noreferrer" className="block text-center bg-emerald-50 text-emerald-700 py-4 rounded-2xl font-black text-sm border border-emerald-100">
-              Ouvrir dans Google Maps ↗
-            </a>
-          </section>
-        )}
-
         <button 
           onClick={onReset} 
-          className="w-full bg-slate-900 text-white py-6 rounded-[2.5rem] font-black text-lg shadow-2xl active:scale-95 transition-all"
+          className="w-full bg-slate-900 text-white py-6 rounded-[2.5rem] font-black text-lg shadow-2xl active:scale-95 transition-all mt-4"
         >
           Chercher autre chose
         </button>
