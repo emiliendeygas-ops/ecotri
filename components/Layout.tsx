@@ -1,23 +1,49 @@
-
 import React from 'react';
 
-export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <div className="min-h-screen flex flex-col max-w-2xl mx-auto bg-white shadow-2xl overflow-hidden">
-    <header className="p-6 bg-emerald-600 text-white flex justify-between items-center sticky top-0 z-50">
+interface LayoutProps {
+  children: React.ReactNode;
+  points?: number;
+  level?: string;
+  showPointAnim?: boolean;
+}
+
+export const Layout: React.FC<LayoutProps> = ({ children, points = 0, level = "Novice", showPointAnim }) => (
+  <div className="min-h-screen flex flex-col max-w-lg mx-auto bg-white shadow-2xl shadow-slate-200/50 border-x border-slate-50 relative selection:bg-emerald-100">
+    <header className="px-6 py-5 flex justify-between items-center sticky top-0 bg-white/90 backdrop-blur-xl z-[100] border-b border-slate-50/50">
       <div className="flex items-center gap-3">
-        <div className="bg-white p-2 rounded-xl text-emerald-600 font-black">♻️</div>
-        <h1 className="text-2xl font-black tracking-tight">EcoTri</h1>
+        <div className="w-10 h-10 bg-emerald-600 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-200/50 -rotate-3 transition-transform hover:rotate-0 cursor-pointer">
+           <span className="text-white text-lg">♻️</span>
+        </div>
+        <div>
+          <h1 className="font-[900] text-lg tracking-tight text-slate-900 leading-none">EcoTri</h1>
+          <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">{level}</span>
+        </div>
       </div>
-      <button className="bg-white/20 px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-2 hover:bg-white/30 transition-all">
-        Soutenir ☕️
-      </button>
+      
+      <div className="relative">
+        <div className={`bg-slate-50 px-4 py-2 rounded-2xl flex items-center gap-2 border border-slate-100 transition-all duration-300 ${showPointAnim ? 'scale-110 border-emerald-300 bg-emerald-50' : ''}`}>
+          <span className="text-emerald-500 text-sm animate-pulse">🍃</span>
+          <span className="font-[900] text-sm text-slate-700">{points}</span>
+        </div>
+        
+        {showPointAnim && (
+          <div className="absolute -top-10 right-0 bg-emerald-600 text-white text-[10px] font-black px-3 py-1.5 rounded-full animate-bounce shadow-xl ring-4 ring-emerald-50">
+            BRAVO ! +10
+          </div>
+        )}
+      </div>
     </header>
-    <main className="flex-1 overflow-y-auto">{children}</main>
-    <footer className="p-8 text-center border-t border-slate-100 bg-slate-50">
-      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-2">EcoTri © 2025 • Guide de tri durable</p>
-      <div className="flex justify-center gap-4 text-emerald-600 text-[10px] font-bold">
-        <button className="hover:underline">Conditions</button>
-        <button className="hover:underline">Partenaires</button>
+
+    <main className="flex-1 overflow-y-auto no-scrollbar bg-gradient-to-b from-white to-slate-50/30">
+      {children}
+    </main>
+
+    <footer className="p-8 bg-white text-center border-t border-slate-50">
+      <p className="text-[9px] font-black text-slate-300 uppercase tracking-[0.4em] mb-4">EcoTri Pro • Version 2025.2</p>
+      <div className="flex justify-center gap-6 opacity-20">
+        <div className="w-1 h-1 bg-slate-400 rounded-full"></div>
+        <div className="w-1 h-1 bg-slate-400 rounded-full"></div>
+        <div className="w-1 h-1 bg-slate-400 rounded-full"></div>
       </div>
     </footer>
   </div>

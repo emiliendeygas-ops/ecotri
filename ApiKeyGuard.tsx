@@ -6,33 +6,34 @@ interface ApiKeyGuardProps {
 }
 
 /**
- * ApiKeyGuard gère l'accès à l'application en vérifiant la présence d'une clé API.
- * Si aucune clé n'est trouvée dans process.env, il propose l'utilisation du sélecteur natif.
+ * ApiKeyGuard gère l'accès à l'application.
+ * Il respecte la règle de "race condition" : après avoir ouvert le sélecteur,
+ * on procède à l'application sans attendre de confirmation supplémentaire.
  */
 export const ApiKeyGuard: React.FC<ApiKeyGuardProps> = ({ children }) => {
   const [status, setStatus] = useState<'loading' | 'ready' | 'missing'>('loading');
 
   useEffect(() => {
     const verifyKey = async () => {
-      // 1. Vérification de la clé d'environnement
+      // 1. Vérification de la clé d'environnement (Firebase Secrets / GCP)
       const envKey = process.env.API_KEY;
       if (envKey && envKey !== 'undefined' && envKey.length > 10) {
         setStatus('ready');
         return;
       }
 
-      // 2. Vérification du bridge AI Studio (si disponible)
-      // @ts-ignore
-      if (window.aistudio && typeof window.aistudio.hasSelectedApiKey === 'function') {
+      // 2. Vérification du bridge AI Studio
+      // Fix: Access window.aistudio via casting to avoid conflicting global interface declarations
+      const aistudio = (window as any).aistudio;
+      if (aistudio && typeof aistudio.hasSelectedApiKey === 'function') {
         try {
-          // @ts-ignore
-          const hasSelected = await window.aistudio.hasSelectedApiKey();
+          const hasSelected = await aistudio.hasSelectedApiKey();
           if (hasSelected) {
             setStatus('ready');
             return;
           }
         } catch (e) {
-          console.warn("Erreur vérification bridge:", e);
+          console.warn("Vérification bridge ignorée:", e);
         }
       }
 
@@ -43,19 +44,22 @@ export const ApiKeyGuard: React.FC<ApiKeyGuardProps> = ({ children }) => {
   }, []);
 
   const handleSelectKey = async () => {
-    // @ts-ignore
-    if (window.aistudio && typeof window.aistudio.openSelectKey === 'function') {
+    // Fix: Access window.aistudio via casting to any
+    const aistudio = (window as any).aistudio;
+    if (aistudio && typeof aistudio.openSelectKey === 'function') {
       try {
-        // @ts-ignore
-        await window.aistudio.openSelectKey();
-        // On force le passage à l'état prêt car le bridge injectera la clé dynamiquement
+        // Déclenche l'ouverture du dialogue
+        await aistudio.openSelectKey();
+        
+        // CRITIQUE : Conformément aux directives, on assume le succès 
+        // pour éviter les race conditions et on lance l'app.
         setStatus('ready');
       } catch (e) {
-        console.error("Erreur ouverture sélecteur:", e);
-        alert("Impossible d'ouvrir le sélecteur de clé.");
+        console.error("Erreur sélecteur:", e);
+        alert("Erreur lors de l'ouverture du sélecteur.");
       }
     } else {
-      alert("Le sélecteur de clé n'est pas disponible sur ce domaine. Veuillez configurer la clé API dans votre environnement Firebase.");
+      alert("Le sélecteur de clé n'est pas disponible. Vérifiez que vous êtes sur le bon domaine ou configurez l'API_KEY dans Firebase.");
     }
   };
 
@@ -73,9 +77,9 @@ export const ApiKeyGuard: React.FC<ApiKeyGuardProps> = ({ children }) => {
         <div className="w-24 h-24 bg-white rounded-[3rem] shadow-xl flex items-center justify-center text-5xl mb-8 animate-float border border-emerald-50">
           🔑
         </div>
-        <h2 className="text-3xl font-[900] text-slate-900 mb-4 tracking-tight">Configuration Requise</h2>
+        <h2 className="text-3xl font-[900] text-slate-900 mb-4 tracking-tight">EcoTri nécessite une clé</h2>
         <p className="text-slate-500 font-medium mb-10 max-w-sm leading-relaxed">
-          Pour faire fonctionner l'analyse de tri, vous devez connecter votre propre clé API Gemini ou configurer l'environnement Firebase.
+          Pour analyser vos déchets avec l'intelligence artificielle, connectez votre projet Google Cloud.
         </p>
         
         <div className="space-y-4 w-full max-w-sm">
@@ -83,13 +87,13 @@ export const ApiKeyGuard: React.FC<ApiKeyGuardProps> = ({ children }) => {
             onClick={handleSelectKey}
             className="w-full bg-emerald-600 text-white py-6 rounded-3xl font-black text-lg shadow-xl shadow-emerald-100 active:scale-95 transition-all hover:bg-emerald-700"
           >
-            Connecter ma clé API
+            Sélectionner ma Clé API
           </button>
           
           <div className="p-6 bg-white rounded-3xl border border-slate-100 text-left">
-            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Aide développeur</h4>
+            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Note sur la facturation</h4>
             <p className="text-xs text-slate-600 leading-normal">
-              Si vous êtes le propriétaire, assurez-vous d'avoir injecté <code className="bg-slate-100 px-1">API_KEY</code> lors du build de votre application.
+              Utilisez un projet avec facturation activée pour profiter des cartes et de la génération d'images.
             </p>
           </div>
           
@@ -99,7 +103,7 @@ export const ApiKeyGuard: React.FC<ApiKeyGuardProps> = ({ children }) => {
             rel="noopener noreferrer"
             className="block text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-emerald-600 transition-colors"
           >
-            Documentation Google AI ↗
+            En savoir plus sur la facturation ↗
           </a>
         </div>
       </div>
