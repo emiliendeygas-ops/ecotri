@@ -5,25 +5,21 @@ interface ApiKeyGuardProps {
   children: React.ReactNode;
 }
 
-/**
- * ApiKeyGuard gère l'accès à l'application.
- * Il respecte la règle de "race condition" : après avoir ouvert le sélecteur,
- * on procède à l'application sans attendre de confirmation supplémentaire.
- */
 export const ApiKeyGuard: React.FC<ApiKeyGuardProps> = ({ children }) => {
   const [status, setStatus] = useState<'loading' | 'ready' | 'missing'>('loading');
 
   useEffect(() => {
     const verifyKey = async () => {
       // 1. Vérification de la clé d'environnement (Firebase Secrets / GCP)
-      const envKey = process.env.API_KEY;
+      // Protection contre process undefined
+      const envKey = typeof process !== 'undefined' && process.env ? process.env.API_KEY : undefined;
+      
       if (envKey && envKey !== 'undefined' && envKey.length > 10) {
         setStatus('ready');
         return;
       }
 
       // 2. Vérification du bridge AI Studio
-      // Fix: Access window.aistudio via casting to avoid conflicting global interface declarations
       const aistudio = (window as any).aistudio;
       if (aistudio && typeof aistudio.hasSelectedApiKey === 'function') {
         try {
@@ -44,22 +40,18 @@ export const ApiKeyGuard: React.FC<ApiKeyGuardProps> = ({ children }) => {
   }, []);
 
   const handleSelectKey = async () => {
-    // Fix: Access window.aistudio via casting to any
     const aistudio = (window as any).aistudio;
     if (aistudio && typeof aistudio.openSelectKey === 'function') {
       try {
-        // Déclenche l'ouverture du dialogue
         await aistudio.openSelectKey();
-        
-        // CRITIQUE : Conformément aux directives, on assume le succès 
-        // pour éviter les race conditions et on lance l'app.
+        // On assume le succès pour éviter les race conditions
         setStatus('ready');
       } catch (e) {
         console.error("Erreur sélecteur:", e);
         alert("Erreur lors de l'ouverture du sélecteur.");
       }
     } else {
-      alert("Le sélecteur de clé n'est pas disponible. Vérifiez que vous êtes sur le bon domaine ou configurez l'API_KEY dans Firebase.");
+      alert("Le sélecteur de clé n'est pas disponible. Si vous êtes en production, la clé doit être configurée dans les secrets Firebase.");
     }
   };
 

@@ -3,7 +3,9 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { SortingResult, BinType, CollectionPoint } from "../types";
 
 const getClient = () => {
-  const apiKey = process.env.API_KEY;
+  // Protection contre le crash si process n'est pas encore défini par Vite
+  const apiKey = typeof process !== 'undefined' && process.env ? process.env.API_KEY : undefined;
+  
   if (!apiKey) throw new Error("API_KEY_INVALID");
   return new GoogleGenAI({ apiKey });
 };
@@ -14,7 +16,7 @@ export const analyzeWaste = async (input: string | { data: string, mimeType: str
     const isImage = typeof input !== 'string';
     
     const parts = isImage 
-      ? [{ inlineData: input }, { text: "Analyse ce déchet pour le tri en France (normes 2025)." }]
+      ? [{ inlineData: input }, { text: "Analyse ce déchet pour le tri en France (normes 2025). Soyez précis sur le type de matière." }]
       : [{ text: `Consigne de tri officielle France 2025 pour : "${input}".` }];
 
     const response = await ai.models.generateContent({
@@ -55,7 +57,7 @@ export const findNearbyPoints = async (binType: BinType, lat: number, lng: numbe
     const ai = getClient();
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
-      contents: `Points de collecte pour ${binType} près de lat:${lat}, lng:${lng}.`,
+      contents: `Donne-moi les 3 points de collecte les plus proches pour le type de déchet ${binType} près de ma position (lat:${lat}, lng:${lng}).`,
       config: { 
         tools: [{ googleMaps: {} }], 
         toolConfig: { retrievalConfig: { latLng: { latitude: lat, longitude: lng } } } 
@@ -83,7 +85,7 @@ export const generateWasteImage = async (itemName: string): Promise<string | nul
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash-image',
       contents: { 
-        parts: [{ text: `A clean minimalist 3D isometric icon of ${itemName} on white background.` }] 
+        parts: [{ text: `A clean minimalist 3D isometric icon of ${itemName} for a recycling app, isolated on white background.` }] 
       }
     });
 
