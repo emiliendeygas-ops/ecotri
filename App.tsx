@@ -214,7 +214,7 @@ export default function App() {
                <span className="text-5xl">🧐</span>
             </div>
             <h2 className="text-2xl font-[900] text-slate-900 mb-2">Identification...</h2>
-            <p className="text-slate-400 font-bold text-[10px] uppercase tracking-widest leading-loose">Consulte les normes de tri 2025</p>
+            <p className="text-slate-400 font-bold text-[10px] uppercase tracking-widest leading-loose">Normes de tri France 2025</p>
           </div>
         )}
       </Layout>
