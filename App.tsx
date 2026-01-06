@@ -5,6 +5,7 @@ import { ResultCard } from './components/ResultCard';
 import { ApiKeyGuard } from './ApiKeyGuard';
 import { analyzeWaste, generateWasteImage, findNearbyPoints, startEcoChat, getDailyEcoTip } from './services/geminiService';
 import { PRIVACY_POLICY, TERMS_OF_SERVICE, RECYCLING_GUIDE } from './services/legalContent';
+import { trackEvent } from './services/firebaseConfig';
 import { SortingResult, HistoryItem } from './types';
 import { Chat } from '@google/genai';
 
@@ -49,6 +50,8 @@ export default function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
+    trackEvent('page_view', { page_title: 'Accueil' });
+
     const savedHistory = localStorage.getItem('ecotri_history');
     if (savedHistory) setHistory(JSON.parse(savedHistory));
     const savedPoints = localStorage.getItem('ecotri_points');
@@ -83,6 +86,12 @@ export default function App() {
   const handleProcess = async (input: string | { data: string, mimeType: string }) => {
     const textInput = typeof input === 'string' ? input.trim() : null;
     if (typeof input === 'string' && !textInput) return;
+    
+    trackEvent('search_waste', { 
+      method: typeof input === 'string' ? 'text' : 'camera',
+      query: typeof input === 'string' ? textInput : 'image_scan'
+    });
+
     setError(null);
     setIsAnalyzing(true);
     setIsCameraActive(false);
@@ -92,13 +101,11 @@ export default function App() {
       const res = await analyzeWaste(input);
       if (res && res.itemName) {
         setResult(res);
-        // Ajout à l'historique
         const newItem: HistoryItem = { id: Math.random().toString(36).substr(2, 9), timestamp: Date.now(), itemName: res.itemName, bin: res.bin };
         const newHistory = [newItem, ...history.filter(h => h.itemName !== res.itemName)].slice(0, 5);
         setHistory(newHistory);
         localStorage.setItem('ecotri_history', JSON.stringify(newHistory));
         
-        // Points
         const newPoints = ecoPoints + 10;
         setEcoPoints(newPoints);
         localStorage.setItem('ecotri_points', newPoints.toString());
@@ -143,6 +150,7 @@ export default function App() {
         onReset={() => { setResult(null); setQuery(''); setChatMessages([]); setChatSession(null); }} 
         onAskQuestion={async (text) => {
           if (!chatSession || isChatting) return;
+          trackEvent('ask_coach', { question: text });
           const msgs = [...chatMessages, { role: 'user' as const, text }];
           setChatMessages(msgs);
           setIsChatting(true);
@@ -197,7 +205,6 @@ export default function App() {
           </div>
         </div>
 
-        {/* SECTION TEXTUELLE POUR ADSENSE */}
         <section className="space-y-8 pt-6">
           <div className="bg-emerald-50 p-8 rounded-[3rem] border border-emerald-100 shadow-sm">
             <h2 className="text-xl font-black text-emerald-900 mb-4 flex items-center gap-2">
@@ -280,8 +287,12 @@ export default function App() {
         )}
         {isAnalyzing && (
           <div className="fixed inset-0 bg-white/95 backdrop-blur-xl z-[250] flex flex-col items-center justify-center p-10 text-center animate-in">
-            <div className="w-32 h-32 bg-emerald-50 rounded-[3rem] flex items-center justify-center mb-8 animate-bounce"><span className="text-6xl">🧐</span></div>
-            <h2 className="text-3xl font-[900] text-slate-900 mb-2">Analyse CITEO 2025...</h2>
+            <div className="w-32 h-32 bg-emerald-100 rounded-[3rem] flex items-center justify-center mb-8 animate-bounce shadow-xl shadow-emerald-200/50 relative overflow-hidden">
+               <span className="text-6xl relative z-10">✨</span>
+               <div className="scanning-line"></div>
+            </div>
+            <h2 className="text-3xl font-[900] text-slate-900 mb-2">Identification en cours...</h2>
+            <p className="text-emerald-600 font-bold text-sm tracking-widest uppercase">Analyse de votre impact positif</p>
           </div>
         )}
       </Layout>
