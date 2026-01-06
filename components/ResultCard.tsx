@@ -30,10 +30,23 @@ export const ResultCard: React.FC<ResultCardProps> = ({
   const [activePoint, setActivePoint] = useState(0);
   const [chatInput, setChatInput] = useState('');
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const isFirstRender = useRef(true);
 
+  // Forcer le retour en haut de page à l'apparition du résultat
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [chatMessages]);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [result.itemName]);
+
+  // Gérer le scroll du chat uniquement après le premier rendu
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    if (chatMessages.length > 0) {
+      chatEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }, [chatMessages, isChatting]);
 
   const handleChatSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,15 +57,16 @@ export const ResultCard: React.FC<ResultCardProps> = ({
 
   return (
     <div className="animate-in pb-12">
-      <div className={`${binInfo.color} p-12 text-center relative overflow-hidden transition-colors duration-500`}>
+      {/* SECTION DU BAC - Doit être visible immédiatement */}
+      <div className={`${binInfo.color} p-12 text-center relative overflow-hidden transition-colors duration-500 min-h-[300px] flex flex-col items-center justify-center`}>
         <div className="absolute top-0 right-0 p-10 opacity-10 pointer-events-none text-9xl">♻️</div>
-        <div className="mb-8 flex justify-center">
+        <div className="mb-6 flex justify-center">
           {result.imageUrl ? (
             <div className="p-5 bg-white/40 backdrop-blur-xl rounded-[3rem] shadow-2xl ring-1 ring-white/50 animate-float">
-              <img src={result.imageUrl} alt={result.itemName} className="w-32 h-32 object-contain" />
+              <img src={result.imageUrl} alt={result.itemName} className="w-28 h-28 object-contain" />
             </div>
           ) : (
-            <div className="w-32 h-32 bg-white/20 rounded-[3rem] flex items-center justify-center text-4xl">📦</div>
+            <div className="w-28 h-28 bg-white/20 rounded-[3rem] flex items-center justify-center text-4xl shadow-inner">📦</div>
           )}
         </div>
         <h2 className={`text-4xl font-[900] capitalize mb-4 ${binInfo.text} tracking-tight`}>{result.itemName}</h2>
@@ -74,7 +88,7 @@ export const ResultCard: React.FC<ResultCardProps> = ({
           <p className="text-slate-800 font-bold text-xl leading-snug">{result.explanation}</p>
         </section>
 
-        {/* ECO COACH CHAT */}
+        {/* ECO COACH CHAT - Scroll géré pour ne pas voler le focus au début */}
         <section className="bg-slate-50 p-6 rounded-[2.5rem] border border-slate-100 flex flex-col gap-4">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-emerald-600 rounded-xl flex items-center justify-center text-white text-sm">🌱</div>
@@ -84,7 +98,7 @@ export const ResultCard: React.FC<ResultCardProps> = ({
           <div className="max-h-60 overflow-y-auto space-y-3 no-scrollbar py-2">
             {chatMessages.length === 0 && (
               <p className="text-slate-400 text-[11px] italic text-center py-4">
-                Pose-moi une question sur le recyclage de cet objet !
+                Posez-moi une question sur le recyclage de cet objet !
               </p>
             )}
             {chatMessages.map((msg, i) => (
