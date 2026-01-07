@@ -116,15 +116,15 @@ export const MapView: React.FC<MapViewProps> = ({
   };
 
   return (
-    <div className="relative group overflow-visible">
+    <div className="relative group">
       <div ref={mapRef} className="h-72 w-full rounded-[2.5rem] border border-slate-100 shadow-inner overflow-hidden relative z-0" />
       
-      {/* Bouton Rechercher dans cette zone - Ajusté en top-10 pour être plus visible et ne pas déborder */}
+      {/* Bouton Rechercher dans cette zone - Correction du centrage */}
       {showSearchButton && !isSearching && (
-        <div className="absolute top-10 left-1/2 -translate-x-1/2 z-20 animate-in w-full flex justify-center px-4">
+        <div className="absolute top-6 left-0 right-0 z-20 animate-in flex justify-center pointer-events-none">
           <button 
             onClick={handleSearchClick}
-            className="bg-emerald-600 text-white px-5 py-3 rounded-full text-[10px] font-black uppercase tracking-widest shadow-2xl hover:bg-emerald-700 transition-all active:scale-95 flex items-center gap-2 whitespace-nowrap ring-4 ring-white/30"
+            className="pointer-events-auto bg-emerald-600 text-white px-6 py-3 rounded-full text-[10px] font-black uppercase tracking-widest shadow-2xl hover:bg-emerald-700 transition-all active:scale-95 flex items-center gap-2 whitespace-nowrap ring-4 ring-white/30"
           >
             <span className="text-sm">🔍</span> Rechercher ici
           </button>
