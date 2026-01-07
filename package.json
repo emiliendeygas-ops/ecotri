@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && cp ads.txt dist/ 2>/dev/null || copy ads.txt dist\\",
     "preview": "vite preview",
     "deploy:firebase": "npm run build && firebase deploy",
     "deploy:gcp": "gcloud run deploy ecotri --source ."

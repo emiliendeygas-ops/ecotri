@@ -100,24 +100,99 @@ export const startEcoChat = (result: SortingResult): Chat => {
   });
 };
 
-export const findNearbyPoints = async (binType: BinType, itemName: string, lat: number, lng: number): Promise<CollectionPoint[]> => {
+const extractCoordsFromUri = (uri: string): { lat: number, lng: number } | null => {
   try {
-    const ai = getClient();
-    const response = await ai.models.generateContent({
+    const decodedUri = decodeURIComponent(uri);
+    
+    const patterns = [
+      /@(-?\d+\.\d+),(-?\d+\.\d+)/,
+      /!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/,
+      /[?&](?:query|q)=(-?\d+\.\d+),(-?\d+\.\d+)/,
+      /\/(-?\d+\.\d+),(-?\d+\.\d+)/
+    ];
+
+    for (const pattern of patterns) {
+      const match = decodedUri.match(pattern);
+      if (match) return { lat: parseFloat(match[1]), lng: parseFloat(match[2]) };
+    }
+  } catch (e) {}
+  return null;
+};
+
+/**
+ * Recherche des points de collecte.
+ * Utilise d'abord l'outil Maps, puis bascule sur une génération de données GPS 
+ * si l'outil ne renvoie pas de coordonnées précises.
+ */
+export const findNearbyPoints = async (binType: BinType, itemName: string, lat: number, lng: number): Promise<CollectionPoint[]> => {
+  const ai = getClient();
+  let points: CollectionPoint[] = [];
+
+  try {
+    // 1. Tentative avec l'outil Google Maps (Grounding)
+    const mapsResponse = await ai.models.generateContent({
       model: "gemini-2.5-flash",
-      contents: `Points de collecte pour "${itemName}" (${binType}) autour de lat:${lat}, lng:${lng}.`,
-      config: { tools: [{ googleMaps: {} }], toolConfig: { retrievalConfig: { latLng: { latitude: lat, longitude: lng } } } }
+      contents: `Liste 3 points de collecte publics et précis pour : "${itemName}" (type: ${binType}) proches de lat:${lat}, lng:${lng}.`,
+      config: { 
+        tools: [{ googleMaps: {} }], 
+        toolConfig: { retrievalConfig: { latLng: { latitude: lat, longitude: lng } } } 
+      }
     });
-    const chunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
-    return chunks.filter((c: any) => c.maps).map((c: any) => ({
-      name: c.maps.title || "Point de collecte",
-      uri: c.maps.uri,
-      lat: parseFloat(c.maps.uri.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/)?.[1] || "0"),
-      lng: parseFloat(c.maps.uri.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/)?.[2] || "0")
-    })).filter((p: any) => p.uri);
+
+    const chunks = mapsResponse.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
+    chunks.forEach((c: any) => {
+      if (c.maps) {
+        const coords = extractCoordsFromUri(c.maps.uri);
+        points.push({
+          name: c.maps.title || "Point de collecte",
+          uri: c.maps.uri,
+          lat: coords?.lat,
+          lng: coords?.lng
+        });
+      }
+    });
   } catch (e) {
-    return [];
+    console.warn("Google Maps Tool failed, switching to native knowledge...");
   }
+
+  // 2. Fallback : Si aucun point avec coordonnées n'a été trouvé, on demande à l'IA 
+  // d'utiliser ses connaissances pour générer des points GPS probables (bornes de tri, déchetteries connues)
+  if (points.filter(p => p.lat).length === 0) {
+    try {
+      const fallbackResponse = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: `En tant qu'expert en gestion des déchets en France, donne-moi les coordonnées GPS (latitude, longitude) des 3 points de collecte les plus probables pour "${itemName}" (type de bac: ${binType}) à proximité immédiate des coordonnées ${lat}, ${lng}. Réponds uniquement en JSON.`,
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                name: { type: Type.STRING },
+                lat: { type: Type.NUMBER },
+                lng: { type: Type.NUMBER },
+                uri: { type: Type.STRING }
+              },
+              required: ["name", "lat", "lng"]
+            }
+          }
+        }
+      });
+      
+      const jsonPoints = JSON.parse(fallbackResponse.text || "[]");
+      if (jsonPoints.length > 0) {
+        points = jsonPoints.map((p: any) => ({
+          ...p,
+          uri: p.uri || `https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lng}`
+        }));
+      }
+    } catch (e) {
+      console.error("Native knowledge fallback failed:", e);
+    }
+  }
+
+  return points.filter(p => p.uri);
 };
 
 export const generateWasteImage = async (itemName: string): Promise<string | null> => {

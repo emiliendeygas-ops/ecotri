@@ -1,9 +1,10 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { SortingResult } from '../types';
+import { SortingResult, CollectionPoint } from '../types';
 import { BIN_MAPPING } from '../constants';
 import { MapView } from './MapView';
 import { AdBanner } from './AdBanner';
+import { findNearbyPoints } from '../services/geminiService';
 
 interface ResultCardProps {
   result: SortingResult;
@@ -27,17 +28,24 @@ export const ResultCard: React.FC<ResultCardProps> = ({
   isChatting
 }) => {
   const binInfo = BIN_MAPPING[result.bin] || BIN_MAPPING['GRIS'];
-  const [activePoint, setActivePoint] = useState(0);
+  const [activePointIdx, setActivePointIdx] = useState(0);
+  const [localPoints, setLocalPoints] = useState<CollectionPoint[]>(result.nearbyPoints || []);
+  const [isSearchingLocal, setIsSearchingLocal] = useState(false);
   const [chatInput, setChatInput] = useState('');
   const chatEndRef = useRef<HTMLDivElement>(null);
   const isFirstRender = useRef(true);
 
-  // Forcer le retour en haut de page à l'apparition du résultat
+  // Synchronisation initiale
+  useEffect(() => {
+    if (result.nearbyPoints) {
+      setLocalPoints(result.nearbyPoints);
+    }
+  }, [result.nearbyPoints]);
+
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [result.itemName]);
 
-  // Gérer le scroll du chat uniquement après le premier rendu
   useEffect(() => {
     if (isFirstRender.current) {
       isFirstRender.current = false;
@@ -55,9 +63,28 @@ export const ResultCard: React.FC<ResultCardProps> = ({
     setChatInput('');
   };
 
+  const handleSearchInArea = async (lat: number, lng: number) => {
+    setIsSearchingLocal(true);
+    try {
+      const newPoints = await findNearbyPoints(result.bin, result.itemName, lat, lng);
+      if (newPoints && newPoints.length > 0) {
+        // On fusionne avec les anciens points en évitant les doublons par URI
+        setLocalPoints(prev => {
+          const combined = [...newPoints, ...prev];
+          const unique = combined.filter((v, i, a) => a.findIndex(t => t.uri === v.uri) === i);
+          return unique.slice(0, 8); // On limite à 8 points pour la lisibilité
+        });
+        setActivePointIdx(0); // On focus sur le premier nouveau point trouvé
+      }
+    } catch (err) {
+      console.error("Erreur recherche zone:", err);
+    } finally {
+      setIsSearchingLocal(false);
+    }
+  };
+
   return (
     <div className="animate-in pb-12">
-      {/* SECTION DU BAC - Doit être visible immédiatement */}
       <div className={`${binInfo.color} p-12 text-center relative overflow-hidden transition-colors duration-500 min-h-[300px] flex flex-col items-center justify-center`}>
         <div className="absolute top-0 right-0 p-10 opacity-10 pointer-events-none text-9xl">♻️</div>
         <div className="mb-6 flex justify-center">
@@ -88,7 +115,6 @@ export const ResultCard: React.FC<ResultCardProps> = ({
           <p className="text-slate-800 font-bold text-xl leading-snug">{result.explanation}</p>
         </section>
 
-        {/* ECO COACH CHAT - Scroll géré pour ne pas voler le focus au début */}
         <section className="bg-slate-50 p-6 rounded-[2.5rem] border border-slate-100 flex flex-col gap-4">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-emerald-600 rounded-xl flex items-center justify-center text-white text-sm">🌱</div>
@@ -137,20 +163,6 @@ export const ResultCard: React.FC<ResultCardProps> = ({
               🚀
             </button>
           </form>
-          
-          {result.suggestedQuestions && chatMessages.length === 0 && (
-            <div className="flex flex-wrap gap-2 mt-2">
-              {result.suggestedQuestions.map((q, i) => (
-                <button 
-                  key={i}
-                  onClick={() => onAskQuestion(q)}
-                  className="px-4 py-2 bg-emerald-50 text-emerald-700 text-[10px] font-black uppercase tracking-widest rounded-full border border-emerald-100 hover:bg-emerald-100 transition-colors"
-                >
-                  {q}
-                </button>
-              ))}
-            </div>
-          )}
         </section>
 
         {result.impact && (
@@ -174,30 +186,60 @@ export const ResultCard: React.FC<ResultCardProps> = ({
         )}
 
         <section className="space-y-4">
-          <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">Point de collecte 📍</h3>
+          <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">Points de collecte à proximité 📍</h3>
           {!userLocation ? (
-            <button onClick={onRequestLocation} className="w-full bg-slate-50 p-8 rounded-[2.5rem] text-sm font-bold text-slate-500 border border-dashed border-slate-200">
-              📍 Activer la localisation pour voir les bornes
+            <button onClick={onRequestLocation} className="w-full bg-slate-50 p-8 rounded-[2.5rem] text-sm font-bold text-slate-500 border border-dashed border-slate-200 hover:bg-slate-100 transition-colors">
+              📍 Cliquer pour voir les bornes autour de vous
             </button>
           ) : isLocating ? (
-            <div className="p-12 text-center animate-pulse text-xs font-black text-slate-300">RECHERCHE...</div>
-          ) : result.nearbyPoints && result.nearbyPoints.length > 0 ? (
+            <div className="p-12 text-center animate-pulse text-xs font-black text-slate-300">RECHERCHE DES BORNES...</div>
+          ) : localPoints && localPoints.length > 0 ? (
             <div className="space-y-6">
-              <MapView points={[result.nearbyPoints[activePoint]]} userLocation={userLocation} />
-              <div className="flex gap-2 overflow-x-auto no-scrollbar">
-                {result.nearbyPoints.map((p, i) => (
-                  <button key={i} onClick={() => setActivePoint(i)} className={`flex-shrink-0 px-5 py-3 rounded-2xl text-[10px] font-black border-2 transition-all ${i === activePoint ? 'bg-slate-900 border-slate-900 text-white' : 'bg-white border-slate-100 text-slate-400'}`}>
-                    {p.name.length > 18 ? p.name.slice(0, 15) + '...' : p.name}
+              <MapView 
+                points={localPoints} 
+                userLocation={userLocation} 
+                activeIndex={activePointIdx}
+                onSearchArea={handleSearchInArea}
+                isSearching={isSearchingLocal}
+              />
+              <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
+                {localPoints.map((p, i) => (
+                  <button 
+                    key={i} 
+                    onClick={() => setActivePointIdx(i)} 
+                    className={`flex-shrink-0 px-5 py-3 rounded-2xl text-[10px] font-black border-2 transition-all ${i === activePointIdx ? 'bg-slate-900 border-slate-900 text-white shadow-lg' : 'bg-white border-slate-100 text-slate-400 hover:border-slate-300'}`}
+                  >
+                    {p.name.length > 20 ? p.name.slice(0, 18) + '...' : p.name}
                   </button>
                 ))}
               </div>
+              {localPoints[activePointIdx]?.uri && (
+                <a 
+                  href={localPoints[activePointIdx].uri} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="block text-center text-xs font-black text-emerald-600 uppercase tracking-widest py-2 bg-emerald-50 rounded-xl"
+                >
+                  Ouvrir dans Google Maps ↗
+                </a>
+              )}
             </div>
           ) : (
-            <p className="text-center text-slate-400 text-xs font-bold">Aucun point spécifique trouvé à proximité.</p>
+            <div className="bg-slate-50 p-8 rounded-[2.5rem] text-center border border-slate-100">
+               <p className="text-slate-400 text-xs font-bold italic">Aucun point spécifique trouvé. Déplacez la carte ou cliquez sur le bouton de recherche si vous êtes ailleurs.</p>
+               <div className="mt-4 flex justify-center">
+                  <MapView 
+                    points={[]} 
+                    userLocation={userLocation} 
+                    onSearchArea={handleSearchInArea}
+                    isSearching={isSearchingLocal}
+                  />
+               </div>
+            </div>
           )}
         </section>
 
-        <button onClick={onReset} className="w-full bg-slate-900 text-white py-6 rounded-[2.5rem] font-black text-lg active:scale-95 transition-all">Chercher autre chose</button>
+        <button onClick={onReset} className="w-full bg-slate-900 text-white py-6 rounded-[2.5rem] font-black text-lg active:scale-95 transition-all shadow-xl shadow-slate-200">Chercher autre chose</button>
       </div>
     </div>
   );

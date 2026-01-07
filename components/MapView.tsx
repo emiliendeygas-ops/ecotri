@@ -1,11 +1,27 @@
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import * as L from 'leaflet';
 
-export const MapView: React.FC<{ points: any[], userLocation: any }> = ({ points, userLocation }) => {
+interface MapViewProps {
+  points: any[];
+  userLocation: { lat: number, lng: number };
+  activeIndex?: number;
+  onSearchArea?: (lat: number, lng: number) => void;
+  isSearching?: boolean;
+}
+
+export const MapView: React.FC<MapViewProps> = ({ 
+  points, 
+  userLocation, 
+  activeIndex = 0, 
+  onSearchArea,
+  isSearching 
+}) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
+  const [showSearchButton, setShowSearchButton] = useState(false);
+  const [currentCenter, setCurrentCenter] = useState<{lat: number, lng: number} | null>(null);
 
   useEffect(() => {
     if (!mapRef.current || mapInstance.current) return;
@@ -17,52 +33,119 @@ export const MapView: React.FC<{ points: any[], userLocation: any }> = ({ points
     
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(mapInstance.current);
     
+    // Marqueur fixe de l'utilisateur
     L.circleMarker([userLocation.lat, userLocation.lng], { 
-      radius: 8, 
-      color: '#10b981', 
+      radius: 9, 
+      color: '#ffffff', 
       fillColor: '#10b981', 
       fillOpacity: 1,
-      weight: 3,
-      className: 'pulse-marker'
-    }).addTo(mapInstance.current);
+      weight: 4,
+    }).addTo(mapInstance.current).bindPopup("<div class='font-black text-[10px] uppercase'>Vous êtes ici</div>");
+
+    // Détection du mouvement de la carte
+    mapInstance.current.on('moveend', () => {
+      const center = mapInstance.current.getCenter();
+      setCurrentCenter({ lat: center.lat, lng: center.lng });
+      setShowSearchButton(true);
+    });
     
     return () => {
       if (mapInstance.current) {
+        mapInstance.current.off('moveend');
         mapInstance.current.remove();
         mapInstance.current = null;
       }
     };
-  }, []);
+  }, [userLocation.lat, userLocation.lng]);
 
   useEffect(() => {
     if (!mapInstance.current) return;
 
-    // Supprimer les anciens marqueurs
+    // Nettoyage des anciens marqueurs
     markersRef.current.forEach(m => m.remove());
     markersRef.current = [];
 
-    const bounds: any[] = [[userLocation.lat, userLocation.lng]];
-
-    points.forEach(p => {
-      if (p.lat && p.lng) {
-        const marker = L.marker([p.lat, p.lng], {
-          icon: L.divIcon({ 
-            className: '', 
-            html: '<div class="bg-slate-900 w-8 h-8 rounded-full border-4 border-white shadow-xl flex items-center justify-center text-white text-[12px] transform -translate-x-1/2 -translate-y-1/2 animate-in">📍</div>' 
-          })
-        }).addTo(mapInstance.current);
-        
-        markersRef.current.push(marker);
-        bounds.push([p.lat, p.lng]);
+    const validPoints = points.filter(p => p.lat !== undefined && p.lng !== undefined);
+    
+    validPoints.forEach((p, idx) => {
+      const isActive = idx === activeIndex;
+      const marker = L.marker([p.lat, p.lng], {
+        icon: L.divIcon({ 
+          className: 'custom-pin-icon', 
+          html: `
+            <div class="flex items-center justify-center w-12 h-12 transition-all duration-300 ${isActive ? 'scale-125 z-[1000]' : 'scale-90 opacity-70'}">
+              <div class="${isActive ? 'bg-emerald-600 shadow-emerald-200' : 'bg-slate-800'} w-10 h-10 rounded-full border-2 border-white shadow-xl flex items-center justify-center text-white text-lg ring-4 ring-black/5">
+                ${isActive ? '📍' : '♻️'}
+              </div>
+              <div class="absolute bottom-[-2px] w-2.5 h-2.5 ${isActive ? 'bg-emerald-600' : 'bg-slate-800'} rotate-45"></div>
+            </div>
+          `,
+          iconSize: [48, 48],
+          iconAnchor: [24, 44]
+        })
+      }).addTo(mapInstance.current);
+      
+      marker.bindPopup(`<div class="font-bold text-xs p-1">${p.name}</div>`);
+      markersRef.current.push(marker);
+      
+      if (isActive) {
+        marker.openPopup();
+        // Si on change de point via la liste, on centre dessus
+        mapInstance.current.panTo([p.lat, p.lng], { animate: true });
+        setShowSearchButton(false); // On cache le bouton car c'est un mouvement programmé
       }
     });
 
-    if (bounds.length > 1) {
-      mapInstance.current.fitBounds(bounds, { padding: [40, 40], animate: true });
-    } else {
-      mapInstance.current.setView([userLocation.lat, userLocation.lng], 14, { animate: true });
+    // Recentrage initial seulement si on a de nouveaux points
+    if (validPoints.length > 0 && markersRef.current.length === validPoints.length && activeIndex === 0) {
+      const bounds: L.LatLngExpression[] = [[userLocation.lat, userLocation.lng], ...validPoints.map(p => [p.lat!, p.lng!] as L.LatLngExpression)];
+      mapInstance.current.fitBounds(bounds, { 
+        padding: [60, 60], 
+        animate: true, 
+        maxZoom: 16 
+      });
+      setShowSearchButton(false);
     }
-  }, [points, userLocation]);
+  }, [points, activeIndex]);
 
-  return <div ref={mapRef} className="h-56 w-full rounded-[2rem] border border-slate-100 shadow-inner overflow-hidden" />;
+  const handleSearchClick = () => {
+    if (currentCenter && onSearchArea) {
+      onSearchArea(currentCenter.lat, currentCenter.lng);
+      setShowSearchButton(false);
+    }
+  };
+
+  return (
+    <div className="relative group overflow-visible">
+      <div ref={mapRef} className="h-72 w-full rounded-[2.5rem] border border-slate-100 shadow-inner overflow-hidden relative z-0" />
+      
+      {/* Bouton Rechercher dans cette zone - Ajusté en top-10 pour être plus visible et ne pas déborder */}
+      {showSearchButton && !isSearching && (
+        <div className="absolute top-10 left-1/2 -translate-x-1/2 z-20 animate-in w-full flex justify-center px-4">
+          <button 
+            onClick={handleSearchClick}
+            className="bg-emerald-600 text-white px-5 py-3 rounded-full text-[10px] font-black uppercase tracking-widest shadow-2xl hover:bg-emerald-700 transition-all active:scale-95 flex items-center gap-2 whitespace-nowrap ring-4 ring-white/30"
+          >
+            <span className="text-sm">🔍</span> Rechercher ici
+          </button>
+        </div>
+      )}
+
+      {/* Indicateur de chargement */}
+      {isSearching && (
+        <div className="absolute inset-0 bg-white/40 backdrop-blur-[2px] z-30 flex items-center justify-center rounded-[2.5rem]">
+          <div className="bg-white px-6 py-4 rounded-3xl shadow-xl flex items-center gap-3 border border-emerald-100 animate-pulse">
+            <div className="w-4 h-4 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin"></div>
+            <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Mise à jour...</span>
+          </div>
+        </div>
+      )}
+
+      <div className="absolute bottom-4 right-4 z-10">
+        <div className="bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-full border border-slate-100 shadow-sm text-[9px] font-black text-slate-600 uppercase tracking-widest">
+          {points.length > 0 ? `Points : ${points.filter(p => p.lat).length}` : "Bornes"}
+        </div>
+      </div>
+    </div>
+  );
 };
