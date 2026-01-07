@@ -3,24 +3,25 @@ import { initializeApp, getApps, FirebaseApp } from "firebase/app";
 import { getAnalytics, logEvent, Analytics } from "firebase/analytics";
 
 /**
- * Configuration Firebase
- * REMPLACER PAR VOS VRAIES VALEURS DE LA CONSOLE FIREBASE
+ * Configuration Firebase.
+ * Note : Les données Analytics peuvent mettre jusqu'à 24h pour apparaître dans le tableau de bord principal.
+ * Utilisez la vue "Realtime" dans la console Firebase pour tester les visites immédiates.
  */
 const firebaseConfig = {
-  apiKey: "REMPLACER_PAR_VOTRE_CLE", 
-  authDomain: "app-ecotri.firebaseapp.com",
-  projectId: "app-ecotri",
-  storageBucket: "app-ecotri.appspot.com",
-  messagingSenderId: "123456789",
-  appId: "1:123456789:web:abcdef",
-  measurementId: "G-XXXXXXXXXX"
+  apiKey: process.env.FIREBASE_API_KEY || "REMPLACER_PAR_VOTRE_CLE", 
+  authDomain: process.env.FIREBASE_AUTH_DOMAIN || "app-ecotri.firebaseapp.com",
+  projectId: process.env.FIREBASE_PROJECT_ID || "app-ecotri",
+  storageBucket: process.env.FIREBASE_STORAGE_BUCKET || "app-ecotri.appspot.com",
+  messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID || "123456789",
+  appId: process.env.FIREBASE_APP_ID || "1:123456789:web:abcdef",
+  measurementId: process.env.FIREBASE_MEASUREMENT_ID || "G-XXXXXXXXXX"
 };
 
 let analytics: Analytics | null = null;
 let app: FirebaseApp | null = null;
 
 /**
- * Vérifie si la configuration Firebase est valide et n'est pas une valeur par défaut.
+ * Vérifie si la configuration Firebase est valide.
  */
 const isConfigValid = (config: typeof firebaseConfig) => {
   return (
@@ -32,35 +33,33 @@ const isConfigValid = (config: typeof firebaseConfig) => {
   );
 };
 
-try {
-  if (typeof window !== 'undefined' && isConfigValid(firebaseConfig)) {
-    app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
-    analytics = getAnalytics(app);
-  }
-} catch (e) {
-  // On ne loggue l'erreur qu'en développement local pour ne pas polluer la console de l'utilisateur
-  if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
-    console.debug("Firebase Analytics désactivé (Clé manquante ou invalide).");
+if (typeof window !== 'undefined') {
+  if (isConfigValid(firebaseConfig)) {
+    try {
+      app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+      analytics = getAnalytics(app);
+      console.log("✅ EcoTri Analytics : Initialisé (Données en cours d'envoi).");
+    } catch (e) {
+      console.warn("❌ EcoTri Analytics : Échec d'initialisation.", e);
+    }
+  } else {
+    console.info(
+      "ℹ️ EcoTri Analytics : Désactivé. Pour l'activer, remplissez 'services/firebaseConfig.ts' " +
+      "ou configurez les secrets FIREBASE_API_KEY et FIREBASE_APP_ID dans votre environnement de déploiement."
+    );
   }
 }
 
 export { analytics };
 
-/**
- * Envoie un événement à Firebase Analytics de manière sécurisée.
- * Cette fonction ne fera rien si Analytics n'est pas initialisé correctement.
- */
 export const trackEvent = (eventName: string, params?: object) => {
   try {
     if (analytics) {
       logEvent(analytics, eventName, params);
-    } else {
-      // Mock en développement local pour vérifier que les événements seraient envoyés
-      if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
-        console.log(`[Firebase-Mock] Event: ${eventName}`, params);
-      }
+    } else if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+      console.debug(`[Analytics-Debug] ${eventName}`, params);
     }
   } catch (e) {
-    // Échec silencieux pour éviter de bloquer l'application suite à un échec de tracking
+    // Échec silencieux
   }
 };
