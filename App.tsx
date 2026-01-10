@@ -8,6 +8,7 @@ import { PRIVACY_POLICY, TERMS_OF_SERVICE, RECYCLING_GUIDE } from './services/le
 import { trackEvent } from './services/firebaseConfig';
 import { SortingResult, HistoryItem } from './types';
 import { Chat } from '@google/genai';
+import { AdBanner } from './components/AdBanner';
 
 const SUGGESTIONS = [
   { label: 'Piles', icon: '🔋' },
@@ -130,16 +131,16 @@ export default function App() {
 
   const renderContent = () => {
     if (view === 'privacy') return (
-      <div className="p-8 prose prose-slate">
+      <article className="p-8 prose prose-slate max-w-none">
         <button onClick={() => setView('home')} className="mb-6 text-emerald-600 font-bold flex items-center gap-2">← Retour</button>
         <div dangerouslySetInnerHTML={{ __html: PRIVACY_POLICY }} />
-      </div>
+      </article>
     );
     if (view === 'terms') return (
-      <div className="p-8 prose prose-slate">
+      <article className="p-8 prose prose-slate max-w-none">
         <button onClick={() => setView('home')} className="mb-6 text-emerald-600 font-bold flex items-center gap-2">← Retour</button>
         <div dangerouslySetInnerHTML={{ __html: TERMS_OF_SERVICE }} />
-      </div>
+      </article>
     );
 
     if (result) return (
@@ -166,21 +167,21 @@ export default function App() {
 
     return (
       <div className="flex flex-col px-6 pt-10 pb-20 space-y-10 animate-in">
-        <div className="text-center space-y-3">
+        <header className="text-center space-y-3">
           <div className="inline-flex items-center justify-center p-6 bg-emerald-50 rounded-[2.5rem] mb-2 shadow-inner group">
             <span className="text-5xl group-hover:scale-110 transition-transform">♻️</span>
           </div>
           <h1 className="text-4xl font-[900] text-slate-900 tracking-tight leading-none">Guide de <span className="text-emerald-600">tri intelligent</span></h1>
           <p className="text-slate-400 font-bold text-sm">Le compagnon officiel de vos déchets • Normes 2025</p>
-        </div>
+        </header>
 
-        <div className="space-y-6">
+        <section className="space-y-6">
           <div className="relative group">
             <div className="absolute -inset-1 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-[2.2rem] blur opacity-10 group-focus-within:opacity-25 transition"></div>
             <div className="relative">
               <input type="text" value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleProcess(query)} placeholder="Que voulez-vous trier ?" className="w-full bg-white rounded-[2rem] py-7 pl-8 pr-40 text-lg font-bold shadow-2xl shadow-slate-200/30 border-2 border-transparent focus:border-emerald-500 outline-none transition-all" />
               <div className="absolute right-3 top-3 bottom-3 flex gap-2">
-                <button onClick={() => {
+                <button aria-label="Microphone" onClick={() => {
                   const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
                   if (!SR) return;
                   const rec = new SR();
@@ -190,7 +191,7 @@ export default function App() {
                   rec.onend = () => setIsListening(false);
                   rec.start();
                 }} className={`aspect-square w-12 rounded-2xl flex items-center justify-center transition-all ${isListening ? 'bg-red-500 text-white animate-pulse' : 'bg-slate-50 text-slate-400'}`}>{isListening ? '🎙️' : '🎤'}</button>
-                <button onClick={async () => {
+                <button aria-label="Appareil photo" onClick={async () => {
                   const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
                   setIsCameraActive(true);
                   if (videoRef.current) videoRef.current.srcObject = stream;
@@ -203,9 +204,9 @@ export default function App() {
           <div className="flex flex-wrap gap-2 justify-center">
             {SUGGESTIONS.map((s, i) => <button key={i} onClick={() => { setQuery(s.label); handleProcess(s.label); }} className="flex items-center gap-2 bg-white border border-slate-100 px-5 py-3 rounded-2xl text-[11px] font-black text-slate-500 hover:bg-emerald-50 shadow-sm"><span>{s.icon}</span> {s.label}</button>)}
           </div>
-        </div>
+        </section>
 
-        <section className="space-y-8 pt-6">
+        <section id="guide" className="space-y-8 pt-6">
           <div className="bg-emerald-50 p-8 rounded-[3rem] border border-emerald-100 shadow-sm">
             <h2 className="text-xl font-black text-emerald-900 mb-4 flex items-center gap-2">
               <span>💡</span> Pourquoi bien trier en 2025 ?
@@ -221,6 +222,8 @@ export default function App() {
             )}
           </div>
 
+          <AdBanner />
+
           <div className="space-y-6">
             <h2 className="text-2xl font-black text-slate-900 px-2 tracking-tight">Le Guide Complet du Recyclage</h2>
             <div className="grid grid-cols-1 gap-4">
@@ -233,19 +236,19 @@ export default function App() {
             </div>
           </div>
 
-          <div className="bg-slate-900 p-10 rounded-[4rem] text-white">
+          <section id="faq" className="bg-slate-900 p-10 rounded-[4rem] text-white">
             <h2 className="text-2xl font-black mb-6">FAQ : Vos questions sur le tri</h2>
             <div className="space-y-6">
-              <div>
+              <article>
                 <h4 className="font-bold text-emerald-400 mb-2">Faut-il laver les emballages ?</h4>
                 <p className="text-sm text-slate-300">Non ! Il suffit de les vider. Laver les emballages gaspille de l'eau précieuse.</p>
-              </div>
-              <div>
+              </article>
+              <article>
                 <h4 className="font-bold text-emerald-400 mb-2">Puis-je laisser les bouchons ?</h4>
-                <p className="text-sm text-slate-300">Oui, laissez les bouchons sur les bouteilles en plastique pour qu'ils ne se perdent pas durant le processus.</p>
-              </div>
+                <p className="text-sm text-slate-300">Oui, laissez les bouchons sur les bouteilles en plastique pour qu'ils ne se perdent pas durant le processus de recyclage.</p>
+              </article>
             </div>
-          </div>
+          </section>
         </section>
       </div>
     );
@@ -268,7 +271,7 @@ export default function App() {
             <video ref={videoRef} autoPlay playsInline className="flex-1 object-cover" />
             <div className="p-12 flex justify-between items-center bg-gradient-to-t from-black to-transparent">
               <button onClick={() => setIsCameraActive(false)} className="text-white/50 font-black text-[10px] uppercase tracking-widest">Annuler</button>
-              <button onClick={() => {
+              <button aria-label="Prendre photo" onClick={() => {
                 const ctx = canvasRef.current?.getContext('2d');
                 if (ctx && videoRef.current) {
                   canvasRef.current!.width = videoRef.current.videoWidth;

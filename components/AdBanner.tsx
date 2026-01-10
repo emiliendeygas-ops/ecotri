@@ -19,12 +19,14 @@ export const AdBanner: React.FC<AdBannerProps> = ({
   const initialized = useRef(false);
 
   useEffect(() => {
-    // Empêche la double initialisation qui peut causer des erreurs CSS
     if (initialized.current) return;
     
     try {
       if (typeof window !== 'undefined' && window.adsbygoogle) {
-        (window.adsbygoogle = window.adsbygoogle || []).push({});
+        // Un petit délai aide parfois à éviter les erreurs de calcul de taille sur mobile
+        setTimeout(() => {
+          (window.adsbygoogle = window.adsbygoogle || []).push({});
+        }, 50);
         initialized.current = true;
       }
     } catch (e) {
@@ -33,14 +35,18 @@ export const AdBanner: React.FC<AdBannerProps> = ({
   }, []);
 
   return (
-    <div className="ad-container my-4 bg-slate-50 border border-slate-100 rounded-2xl p-2 flex flex-col items-center min-h-[100px] justify-center overflow-hidden">
-      <span className="text-[9px] text-slate-300 font-black uppercase tracking-widest mb-2">Annonce Sponsorisée</span>
-      <ins className="adsbygoogle"
-           style={{ display: 'block', minWidth: '250px', minHeight: '90px' }}
-           data-ad-client={adClient}
-           data-ad-slot={adSlot}
-           data-ad-format="auto"
-           data-full-width-responsive="true"></ins>
+    <div className="ad-wrapper my-6 overflow-hidden">
+      <div className="bg-slate-50/50 rounded-2xl p-2 border border-slate-100/50 flex flex-col items-center">
+        <span className="text-[8px] text-slate-300 font-bold uppercase tracking-[0.2em] mb-3">Annonce</span>
+        <div className="w-full flex justify-center overflow-hidden min-h-[100px]">
+          <ins className="adsbygoogle"
+               style={{ display: 'block', width: '100%', textAlign: 'center' }}
+               data-ad-client={adClient}
+               data-ad-slot={adSlot}
+               data-ad-format="auto"
+               data-full-width-responsive="true"></ins>
+        </div>
+      </div>
     </div>
   );
 };

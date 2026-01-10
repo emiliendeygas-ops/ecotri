@@ -26,12 +26,18 @@ export const MapView: React.FC<MapViewProps> = ({
   useEffect(() => {
     if (!mapRef.current || mapInstance.current) return;
     
+    // Initialisation avec des options optimisées pour le mobile
     mapInstance.current = L.map(mapRef.current, { 
       zoomControl: false, 
-      attributionControl: false 
+      attributionControl: false,
+      tap: false, // Désactivé pour éviter les conflits de clics sur mobile
+      dragging: true,
+      touchZoom: true
     }).setView([userLocation.lat, userLocation.lng], 14);
     
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(mapInstance.current);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19
+    }).addTo(mapInstance.current);
     
     // Marqueur fixe de l'utilisateur
     L.circleMarker([userLocation.lat, userLocation.lng], { 
@@ -41,6 +47,13 @@ export const MapView: React.FC<MapViewProps> = ({
       fillOpacity: 1,
       weight: 4,
     }).addTo(mapInstance.current).bindPopup("<div class='font-black text-[10px] uppercase'>Vous êtes ici</div>");
+
+    // CRITIQUE : Forcer le calcul de la taille pour mobile
+    setTimeout(() => {
+      if (mapInstance.current) {
+        mapInstance.current.invalidateSize();
+      }
+    }, 250);
 
     // Détection du mouvement de la carte
     mapInstance.current.on('moveend', () => {
@@ -90,13 +103,11 @@ export const MapView: React.FC<MapViewProps> = ({
       
       if (isActive) {
         marker.openPopup();
-        // Si on change de point via la liste, on centre dessus
         mapInstance.current.panTo([p.lat, p.lng], { animate: true });
-        setShowSearchButton(false); // On cache le bouton car c'est un mouvement programmé
+        setShowSearchButton(false);
       }
     });
 
-    // Recentrage initial seulement si on a de nouveaux points
     if (validPoints.length > 0 && markersRef.current.length === validPoints.length && activeIndex === 0) {
       const bounds: L.LatLngExpression[] = [[userLocation.lat, userLocation.lng], ...validPoints.map(p => [p.lat!, p.lng!] as L.LatLngExpression)];
       mapInstance.current.fitBounds(bounds, { 
@@ -106,6 +117,9 @@ export const MapView: React.FC<MapViewProps> = ({
       });
       setShowSearchButton(false);
     }
+    
+    // Recalculer la taille après avoir ajouté des points (mobile fix)
+    mapInstance.current.invalidateSize();
   }, [points, activeIndex]);
 
   const handleSearchClick = () => {
@@ -116,12 +130,15 @@ export const MapView: React.FC<MapViewProps> = ({
   };
 
   return (
-    <div className="relative group">
-      <div ref={mapRef} className="h-72 w-full rounded-[2.5rem] border border-slate-100 shadow-inner overflow-hidden relative z-0" />
+    <div className="relative group w-full">
+      <div 
+        ref={mapRef} 
+        className="h-72 sm:h-80 w-full rounded-[2.5rem] border border-slate-100 shadow-inner overflow-hidden relative z-0 touch-none" 
+        style={{ minHeight: '280px' }}
+      />
       
-      {/* Bouton Rechercher dans cette zone - Correction du centrage */}
       {showSearchButton && !isSearching && (
-        <div className="absolute top-6 left-0 right-0 z-20 animate-in flex justify-center pointer-events-none">
+        <div className="absolute top-6 left-0 right-0 z-[20] animate-in flex justify-center pointer-events-none">
           <button 
             onClick={handleSearchClick}
             className="pointer-events-auto bg-emerald-600 text-white px-6 py-3 rounded-full text-[10px] font-black uppercase tracking-widest shadow-2xl hover:bg-emerald-700 transition-all active:scale-95 flex items-center gap-2 whitespace-nowrap ring-4 ring-white/30"
@@ -131,9 +148,8 @@ export const MapView: React.FC<MapViewProps> = ({
         </div>
       )}
 
-      {/* Indicateur de chargement */}
       {isSearching && (
-        <div className="absolute inset-0 bg-white/40 backdrop-blur-[2px] z-30 flex items-center justify-center rounded-[2.5rem]">
+        <div className="absolute inset-0 bg-white/40 backdrop-blur-[2px] z-[30] flex items-center justify-center rounded-[2.5rem]">
           <div className="bg-white px-6 py-4 rounded-3xl shadow-xl flex items-center gap-3 border border-emerald-100 animate-pulse">
             <div className="w-4 h-4 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin"></div>
             <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Mise à jour...</span>
@@ -141,7 +157,7 @@ export const MapView: React.FC<MapViewProps> = ({
         </div>
       )}
 
-      <div className="absolute bottom-4 right-4 z-10">
+      <div className="absolute bottom-4 right-4 z-[10]">
         <div className="bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-full border border-slate-100 shadow-sm text-[9px] font-black text-slate-600 uppercase tracking-widest">
           {points.length > 0 ? `Points : ${points.filter(p => p.lat).length}` : "Bornes"}
         </div>
