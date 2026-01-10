@@ -9,7 +9,7 @@ import { findNearbyPoints } from '../services/geminiService';
 interface ResultCardProps {
   result: SortingResult;
   userLocation?: any;
-  isLocating?: boolean;
+  isLocating?: boolean; // Reçu du parent
   onReset: () => void;
   onAskQuestion: (q: string) => void;
   onRequestLocation: () => void;
@@ -20,7 +20,7 @@ interface ResultCardProps {
 export const ResultCard: React.FC<ResultCardProps> = ({ 
   result, 
   userLocation, 
-  isLocating, 
+  isLocating: parentIsLocating, 
   onReset, 
   onAskQuestion,
   onRequestLocation,
@@ -31,9 +31,13 @@ export const ResultCard: React.FC<ResultCardProps> = ({
   const [activePointIdx, setActivePointIdx] = useState(0);
   const [localPoints, setLocalPoints] = useState<CollectionPoint[]>(result.nearbyPoints || []);
   const [isSearchingLocal, setIsSearchingLocal] = useState(false);
+  const [localIsLocating, setLocalIsLocating] = useState(false);
   const [chatInput, setChatInput] = useState('');
   const chatEndRef = useRef<HTMLDivElement>(null);
   const isFirstRender = useRef(true);
+
+  // État combiné pour le chargement
+  const loadingLocation = parentIsLocating || localIsLocating;
 
   // Synchronisation initiale
   useEffect(() => {
@@ -41,6 +45,14 @@ export const ResultCard: React.FC<ResultCardProps> = ({
       setLocalPoints(result.nearbyPoints);
     }
   }, [result.nearbyPoints]);
+
+  // Si la position arrive enfin, on lance la recherche
+  useEffect(() => {
+    if (userLocation && localPoints.length === 0 && !isSearchingLocal) {
+      handleSearchInArea(userLocation.lat, userLocation.lng);
+      setLocalIsLocating(false);
+    }
+  }, [userLocation]);
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -68,19 +80,25 @@ export const ResultCard: React.FC<ResultCardProps> = ({
     try {
       const newPoints = await findNearbyPoints(result.bin, result.itemName, lat, lng);
       if (newPoints && newPoints.length > 0) {
-        // On fusionne avec les anciens points en évitant les doublons par URI
         setLocalPoints(prev => {
           const combined = [...newPoints, ...prev];
           const unique = combined.filter((v, i, a) => a.findIndex(t => t.uri === v.uri) === i);
-          return unique.slice(0, 8); // On limite à 8 points pour la lisibilité
+          return unique.slice(0, 8);
         });
-        setActivePointIdx(0); // On focus sur le premier nouveau point trouvé
+        setActivePointIdx(0);
       }
     } catch (err) {
       console.error("Erreur recherche zone:", err);
     } finally {
       setIsSearchingLocal(false);
     }
+  };
+
+  const handleRequestLocationClick = () => {
+    setLocalIsLocating(true);
+    onRequestLocation();
+    // Timeout de sécurité si le GPS ne répond pas
+    setTimeout(() => setLocalIsLocating(false), 10000);
   };
 
   return (
@@ -187,13 +205,26 @@ export const ResultCard: React.FC<ResultCardProps> = ({
 
         <section className="space-y-4">
           <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">Points de collecte à proximité 📍</h3>
+          
           {!userLocation ? (
-            <button onClick={onRequestLocation} className="w-full bg-slate-50 p-8 rounded-[2.5rem] text-sm font-bold text-slate-500 border border-dashed border-slate-200 hover:bg-slate-100 transition-colors">
-              📍 Cliquer pour voir les bornes autour de vous
+            <button 
+              onClick={handleRequestLocationClick} 
+              disabled={loadingLocation}
+              className="w-full bg-slate-50 p-8 rounded-[2.5rem] text-sm font-bold text-slate-500 border border-dashed border-slate-200 hover:bg-slate-100 transition-colors flex flex-col items-center gap-3 active:bg-slate-200"
+            >
+              {loadingLocation ? (
+                <>
+                  <div className="w-8 h-8 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin"></div>
+                  <span className="animate-pulse">Autorisation GPS en cours...</span>
+                </>
+              ) : (
+                <>
+                  <span className="text-3xl">📍</span>
+                  <span>Cliquer pour voir les bornes autour de vous</span>
+                </>
+              )}
             </button>
-          ) : isLocating ? (
-            <div className="p-12 text-center animate-pulse text-xs font-black text-slate-300">RECHERCHE DES BORNES...</div>
-          ) : localPoints && localPoints.length > 0 ? (
+          ) : (
             <div className="space-y-6">
               <MapView 
                 points={localPoints} 
@@ -202,39 +233,36 @@ export const ResultCard: React.FC<ResultCardProps> = ({
                 onSearchArea={handleSearchInArea}
                 isSearching={isSearchingLocal}
               />
-              <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
-                {localPoints.map((p, i) => (
-                  <button 
-                    key={i} 
-                    onClick={() => setActivePointIdx(i)} 
-                    className={`flex-shrink-0 px-5 py-3 rounded-2xl text-[10px] font-black border-2 transition-all ${i === activePointIdx ? 'bg-slate-900 border-slate-900 text-white shadow-lg' : 'bg-white border-slate-100 text-slate-400 hover:border-slate-300'}`}
-                  >
-                    {p.name.length > 20 ? p.name.slice(0, 18) + '...' : p.name}
-                  </button>
-                ))}
-              </div>
-              {localPoints[activePointIdx]?.uri && (
-                <a 
-                  href={localPoints[activePointIdx].uri} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="block text-center text-xs font-black text-emerald-600 uppercase tracking-widest py-2 bg-emerald-50 rounded-xl"
-                >
-                  Ouvrir dans Google Maps ↗
-                </a>
+              
+              {localPoints && localPoints.length > 0 ? (
+                <>
+                  <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
+                    {localPoints.map((p, i) => (
+                      <button 
+                        key={i} 
+                        onClick={() => setActivePointIdx(i)} 
+                        className={`flex-shrink-0 px-5 py-3 rounded-2xl text-[10px] font-black border-2 transition-all ${i === activePointIdx ? 'bg-slate-900 border-slate-900 text-white shadow-lg' : 'bg-white border-slate-100 text-slate-400 hover:border-slate-300'}`}
+                      >
+                        {p.name.length > 20 ? p.name.slice(0, 18) + '...' : p.name}
+                      </button>
+                    ))}
+                  </div>
+                  {localPoints[activePointIdx]?.uri && (
+                    <a 
+                      href={localPoints[activePointIdx].uri} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="block text-center text-xs font-black text-emerald-600 uppercase tracking-widest py-4 bg-emerald-50 rounded-2xl active:bg-emerald-100 transition-colors"
+                    >
+                      Ouvrir dans Google Maps ↗
+                    </a>
+                  )}
+                </>
+              ) : (
+                <div className="bg-slate-50 p-8 rounded-[2.5rem] text-center border border-slate-100">
+                   <p className="text-slate-400 text-xs font-bold italic">Recherche de points spécifiques en cours...</p>
+                </div>
               )}
-            </div>
-          ) : (
-            <div className="bg-slate-50 p-8 rounded-[2.5rem] text-center border border-slate-100">
-               <p className="text-slate-400 text-xs font-bold italic">Aucun point spécifique trouvé. Déplacez la carte ou cliquez sur le bouton de recherche si vous êtes ailleurs.</p>
-               <div className="mt-4 flex justify-center">
-                  <MapView 
-                    points={[]} 
-                    userLocation={userLocation} 
-                    onSearchArea={handleSearchInArea}
-                    isSearching={isSearchingLocal}
-                  />
-               </div>
             </div>
           )}
         </section>

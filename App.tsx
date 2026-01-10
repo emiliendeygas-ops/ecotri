@@ -51,7 +51,7 @@ export default function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
-    trackEvent('page_view', { page_title: 'Accueil' });
+    trackEvent('app_start', { timestamp: new Date().toISOString() });
 
     const savedHistory = localStorage.getItem('ecotri_history');
     if (savedHistory) setHistory(JSON.parse(savedHistory));
@@ -88,9 +88,9 @@ export default function App() {
     const textInput = typeof input === 'string' ? input.trim() : null;
     if (typeof input === 'string' && !textInput) return;
     
-    trackEvent('search_waste', { 
-      method: typeof input === 'string' ? 'text' : 'camera',
-      query: typeof input === 'string' ? textInput : 'image_scan'
+    trackEvent('waste_search_init', { 
+      type: typeof input === 'string' ? 'text' : 'image',
+      value: typeof input === 'string' ? textInput : 'camera_capture'
     });
 
     setError(null);
@@ -101,6 +101,7 @@ export default function App() {
     try {
       const res = await analyzeWaste(input);
       if (res && res.itemName) {
+        trackEvent('waste_search_success', { item: res.itemName, bin: res.bin });
         setResult(res);
         const newItem: HistoryItem = { id: Math.random().toString(36).substr(2, 9), timestamp: Date.now(), itemName: res.itemName, bin: res.bin };
         const newHistory = [newItem, ...history.filter(h => h.itemName !== res.itemName)].slice(0, 5);
@@ -123,6 +124,7 @@ export default function App() {
         }
       }
     } catch (err: any) {
+      trackEvent('waste_search_error', { error: err.message });
       setError("Erreur d'analyse. Veuillez réessayer.");
     } finally {
       setIsAnalyzing(false);
@@ -186,7 +188,10 @@ export default function App() {
                   if (!SR) return;
                   const rec = new SR();
                   rec.lang = 'fr-FR';
-                  rec.onstart = () => setIsListening(true);
+                  rec.onstart = () => {
+                    setIsListening(true);
+                    trackEvent('voice_search_start');
+                  };
                   rec.onresult = (e: any) => handleProcess(e.results[0][0].transcript);
                   rec.onend = () => setIsListening(false);
                   rec.start();
@@ -194,6 +199,7 @@ export default function App() {
                 <button aria-label="Appareil photo" onClick={async () => {
                   const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
                   setIsCameraActive(true);
+                  trackEvent('camera_open');
                   if (videoRef.current) videoRef.current.srcObject = stream;
                 }} className="aspect-square w-12 bg-slate-50 text-slate-400 rounded-2xl flex items-center justify-center">📸</button>
                 <button onClick={() => handleProcess(query)} disabled={!query.trim()} className="bg-emerald-600 text-white px-5 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg">GO</button>
@@ -202,7 +208,11 @@ export default function App() {
           </div>
           
           <div className="flex flex-wrap gap-2 justify-center">
-            {SUGGESTIONS.map((s, i) => <button key={i} onClick={() => { setQuery(s.label); handleProcess(s.label); }} className="flex items-center gap-2 bg-white border border-slate-100 px-5 py-3 rounded-2xl text-[11px] font-black text-slate-500 hover:bg-emerald-50 shadow-sm"><span>{s.icon}</span> {s.label}</button>)}
+            {SUGGESTIONS.map((s, i) => <button key={i} onClick={() => { 
+              trackEvent('suggestion_click', { label: s.label });
+              setQuery(s.label); 
+              handleProcess(s.label); 
+            }} className="flex items-center gap-2 bg-white border border-slate-100 px-5 py-3 rounded-2xl text-[11px] font-black text-slate-500 hover:bg-emerald-50 shadow-sm"><span>{s.icon}</span> {s.label}</button>)}
           </div>
         </section>
 
