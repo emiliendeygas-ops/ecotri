@@ -69,15 +69,15 @@ export const Layout: React.FC<LayoutProps> = ({
         {children}
       </main>
 
-      <footer className="p-8 bg-white border-t border-slate-50">
+      <footer className="p-8 bg-white border-t border-slate-50 mt-auto">
         <div className="text-center space-y-6">
           <p className="text-[9px] font-black text-slate-300 uppercase tracking-[0.4em]">EcoTri Pro • CITEO 2025</p>
           
-          <nav className="flex flex-wrap justify-center items-center gap-x-4 gap-y-2">
+          <nav className="flex flex-row justify-center items-center gap-3">
             <button onClick={onNavPrivacy} className="text-[10px] font-bold text-slate-400 hover:text-emerald-600 transition-colors">Confidentialité</button>
-            <span className="hidden sm:inline text-slate-200 text-[8px]">|</span>
+            <span className="text-slate-200 text-[8px]">•</span>
             <button onClick={onNavTerms} className="text-[10px] font-bold text-slate-400 hover:text-emerald-600 transition-colors">Conditions</button>
-            <span className="hidden sm:inline text-slate-200 text-[8px]">|</span>
+            <span className="text-slate-200 text-[8px]">•</span>
             <a href="mailto:contact@ecotri.fr" className="text-[10px] font-bold text-slate-400 hover:text-emerald-600 transition-colors">Contact</a>
           </nav>
           

@@ -15,25 +15,25 @@ const firebaseConfig = {
 let analytics: Analytics | null = null;
 let app: FirebaseApp | null = null;
 
-if (typeof window !== 'undefined') {
-  // Initialisation asynchrone pour éviter de bloquer le rendu
-  isSupported().then((supported) => {
-    if (supported && firebaseConfig.apiKey && firebaseConfig.apiKey !== "REMPLACER_PAR_VOTRE_CLE") {
-      try {
-        app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+// Initialisation immédiate si possible
+if (typeof window !== 'undefined' && firebaseConfig.apiKey && firebaseConfig.apiKey !== "") {
+  try {
+    app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+    isSupported().then((supported) => {
+      if (supported && app) {
         analytics = getAnalytics(app);
-        console.log("📊 Analytics : Activé");
-      } catch (e) {
-        console.warn("Analytics Init Error:", e);
+        console.log("📊 Analytics Firebase : Initialisé");
       }
-    }
-  });
+    });
+  } catch (e) {
+    console.warn("Analytics Init Error:", e);
+  }
 }
 
 export { analytics };
 
 /**
- * Envoie un événement à Firebase Analytics et aux logs console pour débogage.
+ * Envoie un événement à Firebase Analytics.
  */
 export const trackEvent = (eventName: string, params?: object) => {
   if (typeof window === 'undefined') return;
@@ -43,9 +43,9 @@ export const trackEvent = (eventName: string, params?: object) => {
       logEvent(analytics, eventName, params);
     }
     
-    // Toujours logguer en dev pour vérifier que l'appel est fait
+    // Log console pour débogage
     if (location.hostname === 'localhost' || location.hostname.includes('web.app')) {
-      console.log(`[Event-Track] ${eventName}`, params);
+      console.log(`[Event] ${eventName}`, params);
     }
   } catch (e) {
     console.error("Tracking Error:", e);

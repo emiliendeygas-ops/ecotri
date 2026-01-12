@@ -27,10 +27,18 @@ const GRADES = [
 ];
 
 const WASTE_LEXICON = [
-  { term: "Biodéchets", def: "Déchets alimentaires compostables (épluchures, restes de repas)." },
-  { term: "ECT", def: "Extension des Consignes de Tri : tous les emballages vont au bac jaune." },
-  { term: "Verre sodocalcique", def: "Verre utilisé pour les bouteilles, recyclable à 100% à l'infini." },
-  { term: "DEEE", def: "Déchets d'Équipements Électriques et Électroniques, à recycler en borne spécifique." }
+  { term: "Biodéchets", def: "Déchets organiques (restes de repas, épluchures) qui doivent être compostés ou collectés séparément depuis 2024." },
+  { term: "ECT", def: "Extension des Consignes de Tri : simplification nationale permettant de mettre tous les emballages dans le bac jaune." },
+  { term: "Verre sodocalcique", def: "Verre utilisé pour les bouteilles et bocaux, recyclable à 100% et à l'infini." },
+  { term: "DEEE", def: "Déchets d'Équipements Électriques et Électroniques, contenant des composants dangereux ou précieux (piles, cartes)." },
+  { term: "CITEO", def: "Organisme français en charge de la gestion et du financement du recyclage des emballages ménagers." },
+  { term: "ADEME", def: "Agence de la transition écologique participant à la mise en œuvre des politiques publiques pour l'environnement." }
+];
+
+const FAQ_CONTENT = [
+  { q: "Faut-il laver ses emballages avant de les trier ?", a: "Non, il suffit de bien les vider. Laver les emballages gaspille de l'eau qui devra ensuite être traitée." },
+  { q: "Où jeter les médicaments périmés ?", a: "Ils ne vont jamais dans les poubelles classiques. Rapportez-les en pharmacie via le réseau Cyclamed pour une destruction sécurisée." },
+  { q: "Que faire des piles et ampoules ?", a: "Ces objets contiennent des métaux lourds. Déposez-les dans les bacs de collecte à l'entrée des supermarchés ou en déchèterie." }
 ];
 
 export default function App() {
@@ -55,7 +63,7 @@ export default function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
-    trackEvent('app_start', { timestamp: new Date().toISOString() });
+    trackEvent('page_view_home');
     const savedHistory = localStorage.getItem('ecotri_history');
     if (savedHistory) setHistory(JSON.parse(savedHistory));
     const savedPoints = localStorage.getItem('ecotri_points');
@@ -71,12 +79,13 @@ export default function App() {
         p => {
           setLocation({ lat: p.coords.latitude, lng: p.coords.longitude });
           setIsLocating(false);
+          trackEvent('location_success');
         },
         () => {
-          console.warn("Localisation refusée");
           setIsLocating(false);
+          trackEvent('location_denied');
         },
-        { timeout: 10000 }
+        { timeout: 8000 }
       );
     } else {
       setIsLocating(false);
@@ -101,7 +110,7 @@ export default function App() {
     const textInput = typeof input === 'string' ? input.trim() : null;
     if (typeof input === 'string' && !textInput) return;
     
-    trackEvent('waste_search_init', { type: typeof input === 'string' ? 'text' : 'image' });
+    trackEvent('waste_analysis_start', { method: typeof input === 'string' ? 'text' : 'camera' });
     setError(null);
     setIsAnalyzing(true);
     setIsCameraActive(false);
@@ -111,6 +120,7 @@ export default function App() {
       const res = await analyzeWaste(input);
       if (res && res.itemName) {
         setResult(res);
+        trackEvent('waste_analysis_success', { item: res.itemName, bin: res.bin });
         const newItem: HistoryItem = { id: Math.random().toString(36).substr(2, 9), timestamp: Date.now(), itemName: res.itemName, bin: res.bin };
         const newHistory = [newItem, ...history.filter(h => h.itemName !== res.itemName)].slice(0, 5);
         setHistory(newHistory);
@@ -131,6 +141,7 @@ export default function App() {
       }
     } catch (err: any) {
       setError("Erreur d'analyse.");
+      trackEvent('waste_analysis_error');
     } finally {
       setIsAnalyzing(false);
     }
@@ -138,13 +149,13 @@ export default function App() {
 
   const renderContent = () => {
     if (view === 'privacy') return (
-      <article className="p-8 prose prose-slate max-w-none">
+      <article className="p-8 prose prose-slate max-w-none animate-in">
         <button onClick={() => setView('home')} className="mb-6 text-emerald-600 font-bold flex items-center gap-2">← Retour</button>
         <div dangerouslySetInnerHTML={{ __html: PRIVACY_POLICY }} />
       </article>
     );
     if (view === 'terms') return (
-      <article className="p-8 prose prose-slate max-w-none">
+      <article className="p-8 prose prose-slate max-w-none animate-in">
         <button onClick={() => setView('home')} className="mb-6 text-emerald-600 font-bold flex items-center gap-2">← Retour</button>
         <div dangerouslySetInnerHTML={{ __html: TERMS_OF_SERVICE }} />
       </article>
@@ -164,6 +175,7 @@ export default function App() {
           const response = await chatSession.sendMessage({ message: text });
           setChatMessages([...msgs, { role: 'model' as const, text: response.text || '' }]);
           setIsChatting(false);
+          trackEvent('chat_message_sent');
         }}
         onRequestLocation={requestLocation}
         chatMessages={chatMessages}
@@ -194,11 +206,13 @@ export default function App() {
                 rec.onresult = (e: any) => handleProcess(e.results[0][0].transcript);
                 rec.onend = () => setIsListening(false);
                 rec.start();
+                trackEvent('voice_search_click');
               }} className={`aspect-square w-12 rounded-2xl flex items-center justify-center transition-all ${isListening ? 'bg-red-500 text-white animate-pulse' : 'bg-slate-50 text-slate-400'}`}>🎤</button>
               <button aria-label="Photo" onClick={async () => {
                 const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
                 setIsCameraActive(true);
                 if (videoRef.current) videoRef.current.srcObject = stream;
+                trackEvent('camera_open_click');
               }} className="aspect-square w-12 bg-slate-50 text-slate-400 rounded-2xl flex items-center justify-center">📸</button>
               <button onClick={() => handleProcess(query)} disabled={!query.trim()} className="bg-emerald-600 text-white px-5 rounded-2xl font-black text-[10px] uppercase tracking-widest">GO</button>
             </div>
@@ -236,30 +250,34 @@ export default function App() {
           </article>
 
           <section className="bg-white p-8 rounded-[3rem] border border-slate-100 shadow-sm">
-            <h2 className="text-2xl font-black text-slate-900 mb-6 tracking-tight">Lexique du Tri</h2>
+            <h2 className="text-2xl font-black text-slate-900 mb-6 tracking-tight">Lexique Complet du Tri</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {WASTE_LEXICON.map((l, i) => (
-                <div key={i} className="p-4 bg-slate-50 rounded-2xl">
+                <div key={i} className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
                   <span className="block font-black text-emerald-600 text-xs uppercase mb-1">{l.term}</span>
-                  <p className="text-slate-600 text-[13px] font-bold">{l.def}</p>
+                  <p className="text-slate-600 text-[13px] font-bold leading-relaxed">{l.def}</p>
                 </div>
               ))}
             </div>
           </section>
 
           <section id="faq" className="bg-emerald-600 p-10 rounded-[4rem] text-white">
-            <h2 className="text-2xl font-black mb-6">FAQ Recyclage</h2>
-            <div className="space-y-6">
-              <div className="space-y-2">
-                <h4 className="font-black text-emerald-100">Faut-il laver ses emballages ?</h4>
-                <p className="text-sm font-bold opacity-90">Non, il suffit de bien les vider. Les laver gaspille de l'eau inutilement.</p>
-              </div>
-              <div className="space-y-2 border-t border-white/10 pt-6">
-                <h4 className="font-black text-emerald-100">Où jeter les médicaments ?</h4>
-                <p className="text-sm font-bold opacity-90">Ils ne vont jamais à la poubelle. Rapportez-les en pharmacie pour une gestion sécurisée (programme Cyclamed).</p>
-              </div>
+            <h2 className="text-2xl font-black mb-8">FAQ & Conseils</h2>
+            <div className="space-y-8">
+              {FAQ_CONTENT.map((item, idx) => (
+                <div key={idx} className={`space-y-2 ${idx !== 0 ? 'border-t border-white/10 pt-8' : ''}`}>
+                  <h4 className="font-black text-emerald-100 text-lg leading-tight">{item.q}</h4>
+                  <p className="text-sm font-bold opacity-90 leading-relaxed">{item.a}</p>
+                </div>
+              ))}
             </div>
           </section>
+
+          <div className="text-center pb-10">
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-8">
+              Ce contenu est régulièrement mis à jour selon les directives de l'ADEME et CITEO France.
+            </p>
+          </div>
         </section>
       </div>
     );
@@ -273,8 +291,8 @@ export default function App() {
         gradeIcon={gradeInfo.icon} 
         progress={gradeInfo.progress} 
         showPointAnim={showPointAnim}
-        onNavPrivacy={() => setView('privacy')}
-        onNavTerms={() => setView('terms')}
+        onNavPrivacy={() => { setView('privacy'); trackEvent('nav_privacy_click'); }}
+        onNavTerms={() => { setView('terms'); trackEvent('nav_terms_click'); }}
       >
         {renderContent()}
         {isCameraActive && (
