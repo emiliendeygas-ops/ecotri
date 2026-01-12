@@ -1,13 +1,15 @@
 
-import { GoogleGenAI, Type, Chat } from "@google/genai";
+import { GoogleGenAI, Type, Chat, GenerateContentResponse } from "@google/genai";
 import { SortingResult, BinType, CollectionPoint } from "../types";
 
+// Always use const ai = new GoogleGenAI({apiKey: process.env.API_KEY});
 const getClient = () => {
   const apiKey = process.env.API_KEY;
   if (!apiKey || apiKey === '') {
     throw new Error("API_KEY_MISSING");
   }
-  return new GoogleGenAI({ apiKey });
+  // Correct initialization with named parameter
+  return new GoogleGenAI({ apiKey: apiKey });
 };
 
 const handleApiError = (error: any) => {
@@ -25,7 +27,8 @@ const handleApiError = (error: any) => {
 export const getDailyEcoTip = async (): Promise<{ title: string, content: string }> => {
   try {
     const ai = getClient();
-    const response = await ai.models.generateContent({
+    // Use ai.models.generateContent to query GenAI with both the model name and prompt.
+    const response: GenerateContentResponse = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: "Donne-moi un conseil court et percutant sur le tri ou l'écologie en France. Format JSON: { \"title\": \"...\", \"content\": \"...\" }",
       config: {
@@ -40,6 +43,7 @@ export const getDailyEcoTip = async (): Promise<{ title: string, content: string
         }
       }
     });
+    // The GenerateContentResponse object features a text property (not a method)
     return JSON.parse(response.text || "{}");
   } catch (e) {
     return { title: "Le tri, c'est la vie", content: "Chaque geste compte pour protéger notre planète." };
@@ -54,7 +58,7 @@ export const analyzeWaste = async (input: string | { data: string, mimeType: str
       ? [{ inlineData: input }, { text: "Analyse ce déchet pour le tri en France (normes 2025). Calcule aussi son impact écologique." }]
       : [{ text: `Consigne de tri officielle France 2025 pour : "${input}".` }];
 
-    const response = await ai.models.generateContent({
+    const response: GenerateContentResponse = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: { parts },
       config: {
@@ -119,19 +123,13 @@ const extractCoordsFromUri = (uri: string): { lat: number, lng: number } | null 
   return null;
 };
 
-/**
- * Recherche des points de collecte.
- * Utilise d'abord l'outil Maps, puis bascule sur une génération de données GPS 
- * si l'outil ne renvoie pas de coordonnées précises.
- */
 export const findNearbyPoints = async (binType: BinType, itemName: string, lat: number, lng: number): Promise<CollectionPoint[]> => {
   const ai = getClient();
   let points: CollectionPoint[] = [];
 
   try {
-    // 1. Tentative avec l'outil Google Maps (Grounding)
-    const mapsResponse = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+    const mapsResponse: GenerateContentResponse = await ai.models.generateContent({
+      model: "gemini-2.5-flash-lite-latest",
       contents: `Liste 3 points de collecte publics et précis pour : "${itemName}" (type: ${binType}) proches de lat:${lat}, lng:${lng}.`,
       config: { 
         tools: [{ googleMaps: {} }], 
@@ -155,11 +153,9 @@ export const findNearbyPoints = async (binType: BinType, itemName: string, lat: 
     console.warn("Google Maps Tool failed, switching to native knowledge...");
   }
 
-  // 2. Fallback : Si aucun point avec coordonnées n'a été trouvé, on demande à l'IA 
-  // d'utiliser ses connaissances pour générer des points GPS probables (bornes de tri, déchetteries connues)
   if (points.filter(p => p.lat).length === 0) {
     try {
-      const fallbackResponse = await ai.models.generateContent({
+      const fallbackResponse: GenerateContentResponse = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
         contents: `En tant qu'expert en gestion des déchets en France, donne-moi les coordonnées GPS (latitude, longitude) des 3 points de collecte les plus probables pour "${itemName}" (type de bac: ${binType}) à proximité immédiate des coordonnées ${lat}, ${lng}. Réponds uniquement en JSON.`,
         config: {
@@ -198,7 +194,7 @@ export const findNearbyPoints = async (binType: BinType, itemName: string, lat: 
 export const generateWasteImage = async (itemName: string): Promise<string | null> => {
   try {
     const ai = getClient();
-    const response = await ai.models.generateContent({
+    const response: GenerateContentResponse = await ai.models.generateContent({
       model: 'gemini-2.5-flash-image',
       contents: { parts: [{ text: `Minimalist 3D isometric icon of ${itemName} for recycling app, white background.` }] }
     });
