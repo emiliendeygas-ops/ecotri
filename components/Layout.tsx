@@ -70,14 +70,14 @@ export const Layout: React.FC<LayoutProps> = ({
       </main>
 
       <footer className="p-8 bg-white border-t border-slate-50">
-        <div className="text-center space-y-4">
+        <div className="text-center space-y-6">
           <p className="text-[9px] font-black text-slate-300 uppercase tracking-[0.4em]">EcoTri Pro • CITEO 2025</p>
           
-          <nav className="flex justify-center gap-4">
+          <nav className="flex flex-wrap justify-center items-center gap-x-4 gap-y-2">
             <button onClick={onNavPrivacy} className="text-[10px] font-bold text-slate-400 hover:text-emerald-600 transition-colors">Confidentialité</button>
-            <span className="text-slate-200">|</span>
+            <span className="hidden sm:inline text-slate-200 text-[8px]">|</span>
             <button onClick={onNavTerms} className="text-[10px] font-bold text-slate-400 hover:text-emerald-600 transition-colors">Conditions</button>
-            <span className="text-slate-200">|</span>
+            <span className="hidden sm:inline text-slate-200 text-[8px]">|</span>
             <a href="mailto:contact@ecotri.fr" className="text-[10px] font-bold text-slate-400 hover:text-emerald-600 transition-colors">Contact</a>
           </nav>
           
@@ -85,7 +85,7 @@ export const Layout: React.FC<LayoutProps> = ({
             EcoTri utilise l'intelligence artificielle pour simplifier le tri. Nous nous basons sur les directives nationales de l'ADEME et de CITEO France.
           </p>
           
-          <div className="flex justify-center gap-6 opacity-20 pt-4">
+          <div className="flex justify-center gap-6 opacity-20 pt-2">
             <div className="w-1 h-1 bg-slate-400 rounded-full"></div>
             <div className="w-1 h-1 bg-slate-400 rounded-full"></div>
             <div className="w-1 h-1 bg-slate-400 rounded-full"></div>
