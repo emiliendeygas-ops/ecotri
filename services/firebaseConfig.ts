@@ -12,42 +12,64 @@ const firebaseConfig = {
   measurementId: process.env.FIREBASE_MEASUREMENT_ID
 };
 
-let analytics: Analytics | null = null;
-let app: FirebaseApp | null = null;
-
-// Initialisation immédiate si possible
-if (typeof window !== 'undefined' && firebaseConfig.apiKey && firebaseConfig.apiKey !== "") {
-  try {
-    app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
-    isSupported().then((supported) => {
-      if (supported && app) {
-        analytics = getAnalytics(app);
-        console.log("📊 Analytics Firebase : Initialisé");
-      }
-    });
-  } catch (e) {
-    console.warn("Analytics Init Error:", e);
-  }
-}
-
-export { analytics };
+let analyticsInstance: Analytics | null = null;
+const eventQueue: { name: string; params?: object }[] = [];
 
 /**
- * Envoie un événement à Firebase Analytics.
+ * Vérifie si la configuration Firebase est complète
  */
+const isConfigValid = () => {
+  return !!(
+    firebaseConfig.apiKey && 
+    firebaseConfig.projectId && 
+    firebaseConfig.appId
+  );
+};
+
+// Initialisation asynchrone sécurisée
+const initAnalytics = async () => {
+  if (typeof window === 'undefined') return;
+  
+  if (!isConfigValid()) {
+    console.warn("📊 [Firebase] Configuration incomplète. Vérifiez vos variables d'environnement (PROJECT_ID, API_KEY, APP_ID).");
+    return;
+  }
+
+  try {
+    const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+    const supported = await isSupported();
+    
+    if (supported) {
+      analyticsInstance = getAnalytics(app);
+      console.log("📊 [Firebase] Analytics initialisé pour le projet:", firebaseConfig.projectId);
+      
+      // Vider la file d'attente
+      while (eventQueue.length > 0) {
+        const event = eventQueue.shift();
+        if (event) logEvent(analyticsInstance, event.name, event.params);
+      }
+    }
+  } catch (e) {
+    console.error("📊 [Firebase] Erreur d'initialisation critique:", e);
+  }
+};
+
+initAnalytics();
+
 export const trackEvent = (eventName: string, params?: object) => {
   if (typeof window === 'undefined') return;
 
-  try {
-    if (analytics) {
-      logEvent(analytics, eventName, params);
+  // Log de diagnostic toujours présent en console
+  console.log(`📡 [Analytics Event] ${eventName}`, params || "");
+
+  if (analyticsInstance) {
+    try {
+      logEvent(analyticsInstance, eventName, params);
+    } catch (e) {
+      console.error(`❌ [Analytics Error] ${eventName}:`, e);
     }
-    
-    // Log console pour débogage
-    if (location.hostname === 'localhost' || location.hostname.includes('web.app')) {
-      console.log(`[Event] ${eventName}`, params);
-    }
-  } catch (e) {
-    console.error("Tracking Error:", e);
+  } else {
+    // Mise en file d'attente si non prêt
+    eventQueue.push({ name: eventName, params });
   }
 };

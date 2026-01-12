@@ -73,12 +73,27 @@ export const Layout: React.FC<LayoutProps> = ({
         <div className="text-center space-y-6">
           <p className="text-[9px] font-black text-slate-300 uppercase tracking-[0.4em]">EcoTri Pro • CITEO 2025</p>
           
-          <nav className="flex flex-row justify-center items-center gap-3">
-            <button onClick={onNavPrivacy} className="text-[10px] font-bold text-slate-400 hover:text-emerald-600 transition-colors">Confidentialité</button>
-            <span className="text-slate-200 text-[8px]">•</span>
-            <button onClick={onNavTerms} className="text-[10px] font-bold text-slate-400 hover:text-emerald-600 transition-colors">Conditions</button>
-            <span className="text-slate-200 text-[8px]">•</span>
-            <a href="mailto:contact@ecotri.fr" className="text-[10px] font-bold text-slate-400 hover:text-emerald-600 transition-colors">Contact</a>
+          <nav className="flex flex-row justify-center items-center gap-x-3 gap-y-1 text-slate-400">
+            <button 
+              onClick={onNavPrivacy} 
+              className="text-[10px] font-bold hover:text-emerald-600 transition-colors whitespace-nowrap py-1"
+            >
+              Confidentialité
+            </button>
+            <span className="text-slate-200 text-[8px] select-none">•</span>
+            <button 
+              onClick={onNavTerms} 
+              className="text-[10px] font-bold hover:text-emerald-600 transition-colors whitespace-nowrap py-1"
+            >
+              Conditions
+            </button>
+            <span className="text-slate-200 text-[8px] select-none">•</span>
+            <a 
+              href="mailto:contact@ecotri.fr" 
+              className="text-[10px] font-bold hover:text-emerald-600 transition-colors whitespace-nowrap py-1"
+            >
+              Contact
+            </a>
           </nav>
           
           <p className="text-[10px] text-slate-300 px-4 leading-relaxed">
