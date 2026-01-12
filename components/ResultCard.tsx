@@ -9,7 +9,7 @@ import { findNearbyPoints } from '../services/geminiService';
 interface ResultCardProps {
   result: SortingResult;
   userLocation?: any;
-  isLocating?: boolean; // Reçu du parent
+  isLocating: boolean;
   onReset: () => void;
   onAskQuestion: (q: string) => void;
   onRequestLocation: () => void;
@@ -20,7 +20,7 @@ interface ResultCardProps {
 export const ResultCard: React.FC<ResultCardProps> = ({ 
   result, 
   userLocation, 
-  isLocating: parentIsLocating, 
+  isLocating, 
   onReset, 
   onAskQuestion,
   onRequestLocation,
@@ -31,13 +31,9 @@ export const ResultCard: React.FC<ResultCardProps> = ({
   const [activePointIdx, setActivePointIdx] = useState(0);
   const [localPoints, setLocalPoints] = useState<CollectionPoint[]>(result.nearbyPoints || []);
   const [isSearchingLocal, setIsSearchingLocal] = useState(false);
-  const [localIsLocating, setLocalIsLocating] = useState(false);
   const [chatInput, setChatInput] = useState('');
   const chatEndRef = useRef<HTMLDivElement>(null);
   const isFirstRender = useRef(true);
-
-  // État combiné pour le chargement
-  const loadingLocation = parentIsLocating || localIsLocating;
 
   // Synchronisation initiale
   useEffect(() => {
@@ -46,11 +42,10 @@ export const ResultCard: React.FC<ResultCardProps> = ({
     }
   }, [result.nearbyPoints]);
 
-  // Si la position arrive enfin, on lance la recherche
+  // Si la position arrive enfin et qu'on n'a pas encore de points, on lance la recherche
   useEffect(() => {
     if (userLocation && localPoints.length === 0 && !isSearchingLocal) {
       handleSearchInArea(userLocation.lat, userLocation.lng);
-      setLocalIsLocating(false);
     }
   }, [userLocation]);
 
@@ -92,13 +87,6 @@ export const ResultCard: React.FC<ResultCardProps> = ({
     } finally {
       setIsSearchingLocal(false);
     }
-  };
-
-  const handleRequestLocationClick = () => {
-    setLocalIsLocating(true);
-    onRequestLocation();
-    // Timeout de sécurité si le GPS ne répond pas
-    setTimeout(() => setLocalIsLocating(false), 10000);
   };
 
   return (
@@ -208,11 +196,11 @@ export const ResultCard: React.FC<ResultCardProps> = ({
           
           {!userLocation ? (
             <button 
-              onClick={handleRequestLocationClick} 
-              disabled={loadingLocation}
+              onClick={onRequestLocation} 
+              disabled={isLocating}
               className="w-full bg-slate-50 p-8 rounded-[2.5rem] text-sm font-bold text-slate-500 border border-dashed border-slate-200 hover:bg-slate-100 transition-colors flex flex-col items-center gap-3 active:bg-slate-200"
             >
-              {loadingLocation ? (
+              {isLocating ? (
                 <>
                   <div className="w-8 h-8 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin"></div>
                   <span className="animate-pulse">Autorisation GPS en cours...</span>

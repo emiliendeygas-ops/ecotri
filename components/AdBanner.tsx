@@ -25,8 +25,10 @@ export const AdBanner: React.FC<AdBannerProps> = ({
       if (typeof window !== 'undefined' && window.adsbygoogle) {
         // Un petit délai aide parfois à éviter les erreurs de calcul de taille sur mobile
         setTimeout(() => {
-          (window.adsbygoogle = window.adsbygoogle || []).push({});
-        }, 50);
+          if (window.adsbygoogle) {
+            (window.adsbygoogle = window.adsbygoogle || []).push({});
+          }
+        }, 100);
         initialized.current = true;
       }
     } catch (e) {

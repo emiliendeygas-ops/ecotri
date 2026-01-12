@@ -68,28 +68,39 @@ export default function App() {
     if (savedHistory) setHistory(JSON.parse(savedHistory));
     const savedPoints = localStorage.getItem('ecotri_points');
     if (savedPoints) setEcoPoints(parseInt(savedPoints));
-    requestLocation();
+    // Tenter une localisation initiale silencieuse
+    requestLocation(true);
     getDailyEcoTip().then(setDailyTip);
   }, []);
 
-  const requestLocation = () => {
-    setIsLocating(true);
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        p => {
-          setLocation({ lat: p.coords.latitude, lng: p.coords.longitude });
-          setIsLocating(false);
-          trackEvent('location_success');
-        },
-        () => {
-          setIsLocating(false);
-          trackEvent('location_denied');
-        },
-        { timeout: 8000 }
-      );
-    } else {
-      setIsLocating(false);
+  const requestLocation = (silent = false) => {
+    if (!navigator.geolocation) {
+      if (!silent) alert("La géolocalisation n'est pas supportée par votre navigateur.");
+      return;
     }
+
+    setIsLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      p => {
+        setLocation({ lat: p.coords.latitude, lng: p.coords.longitude });
+        setIsLocating(false);
+        trackEvent('location_success');
+      },
+      err => {
+        setIsLocating(false);
+        trackEvent('location_error', { code: err.code });
+        if (!silent) {
+          if (err.code === 1) alert("Merci d'autoriser l'accès au GPS dans les réglages de votre téléphone pour voir les points de collecte.");
+          else if (err.code === 3) alert("Le signal GPS est trop faible. Réessayez à l'extérieur.");
+          else alert("Impossible de vous localiser pour le moment.");
+        }
+      },
+      { 
+        enableHighAccuracy: true, 
+        timeout: 15000, 
+        maximumAge: 60000 
+      }
+    );
   };
 
   const gradeInfo = useMemo(() => {
@@ -177,7 +188,7 @@ export default function App() {
           setIsChatting(false);
           trackEvent('chat_message_sent');
         }}
-        onRequestLocation={requestLocation}
+        onRequestLocation={() => requestLocation(false)}
         chatMessages={chatMessages}
         isChatting={isChatting}
       />

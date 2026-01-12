@@ -2,13 +2,11 @@
 import { GoogleGenAI, Type, Chat, GenerateContentResponse } from "@google/genai";
 import { SortingResult, BinType, CollectionPoint } from "../types";
 
-// Always use const ai = new GoogleGenAI({apiKey: process.env.API_KEY});
 const getClient = () => {
   const apiKey = process.env.API_KEY;
   if (!apiKey || apiKey === '') {
     throw new Error("API_KEY_MISSING");
   }
-  // Correct initialization with named parameter
   return new GoogleGenAI({ apiKey: apiKey });
 };
 
@@ -27,7 +25,6 @@ const handleApiError = (error: any) => {
 export const getDailyEcoTip = async (): Promise<{ title: string, content: string }> => {
   try {
     const ai = getClient();
-    // Use ai.models.generateContent to query GenAI with both the model name and prompt.
     const response: GenerateContentResponse = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: "Donne-moi un conseil court et percutant sur le tri ou l'écologie en France. Format JSON: { \"title\": \"...\", \"content\": \"...\" }",
@@ -43,7 +40,6 @@ export const getDailyEcoTip = async (): Promise<{ title: string, content: string
         }
       }
     });
-    // The GenerateContentResponse object features a text property (not a method)
     return JSON.parse(response.text || "{}");
   } catch (e) {
     return { title: "Le tri, c'est la vie", content: "Chaque geste compte pour protéger notre planète." };
@@ -107,14 +103,12 @@ export const startEcoChat = (result: SortingResult): Chat => {
 const extractCoordsFromUri = (uri: string): { lat: number, lng: number } | null => {
   try {
     const decodedUri = decodeURIComponent(uri);
-    
     const patterns = [
       /@(-?\d+\.\d+),(-?\d+\.\d+)/,
       /!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/,
       /[?&](?:query|q)=(-?\d+\.\d+),(-?\d+\.\d+)/,
       /\/(-?\d+\.\d+),(-?\d+\.\d+)/
     ];
-
     for (const pattern of patterns) {
       const match = decodedUri.match(pattern);
       if (match) return { lat: parseFloat(match[1]), lng: parseFloat(match[2]) };
@@ -129,21 +123,20 @@ export const findNearbyPoints = async (binType: BinType, itemName: string, lat: 
 
   try {
     const mapsResponse: GenerateContentResponse = await ai.models.generateContent({
-      model: "gemini-2.5-flash-lite-latest",
+      model: "gemini-3-flash-preview",
       contents: `Liste 3 points de collecte publics et précis pour : "${itemName}" (type: ${binType}) proches de lat:${lat}, lng:${lng}.`,
       config: { 
-        tools: [{ googleMaps: {} }], 
-        toolConfig: { retrievalConfig: { latLng: { latitude: lat, longitude: lng } } } 
+        tools: [{ googleSearch: {} }] 
       }
     });
 
     const chunks = mapsResponse.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
     chunks.forEach((c: any) => {
-      if (c.maps) {
-        const coords = extractCoordsFromUri(c.maps.uri);
+      if (c.web) {
+        const coords = extractCoordsFromUri(c.web.uri);
         points.push({
-          name: c.maps.title || "Point de collecte",
-          uri: c.maps.uri,
+          name: c.web.title || "Point de collecte",
+          uri: c.web.uri,
           lat: coords?.lat,
           lng: coords?.lng
         });
@@ -153,7 +146,7 @@ export const findNearbyPoints = async (binType: BinType, itemName: string, lat: 
     console.warn("Google Maps Tool failed, switching to native knowledge...");
   }
 
-  if (points.filter(p => p.lat).length === 0) {
+  if (points.length === 0) {
     try {
       const fallbackResponse: GenerateContentResponse = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
@@ -177,12 +170,10 @@ export const findNearbyPoints = async (binType: BinType, itemName: string, lat: 
       });
       
       const jsonPoints = JSON.parse(fallbackResponse.text || "[]");
-      if (jsonPoints.length > 0) {
-        points = jsonPoints.map((p: any) => ({
-          ...p,
-          uri: p.uri || `https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lng}`
-        }));
-      }
+      points = jsonPoints.map((p: any) => ({
+        ...p,
+        uri: p.uri || `https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lng}`
+      }));
     } catch (e) {
       console.error("Native knowledge fallback failed:", e);
     }
@@ -198,7 +189,7 @@ export const generateWasteImage = async (itemName: string): Promise<string | nul
       model: 'gemini-2.5-flash-image',
       contents: { parts: [{ text: `Minimalist 3D isometric icon of ${itemName} for recycling app, white background.` }] }
     });
-    const part = response.candidates?.[0]?.content?.parts.find(p => p.inlineData);
+    const part = response.candidates?.[0]?.content?.parts.find(part => part.inlineData);
     return part ? `data:image/png;base64,${part.inlineData.data}` : null;
   } catch (e) { return null; }
 };
