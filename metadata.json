@@ -1,9 +1,10 @@
+
 {
   "requestFramePermissions": [
     "camera",
     "microphone",
     "geolocation"
   ],
-  "name": "EcoTri - Guide de Tri Intelligent",
-  "description": "Identifiez vos déchets instantanément par texte, voix ou photo avec l'IA Gemini."
+  "name": "EcoSnap - AI Waste Sorting Guide",
+  "description": "Identify your waste instantly by text, voice, or photo with Gemini AI. Your international recycling assistant."
 }
