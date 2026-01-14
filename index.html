@@ -4,8 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>EcoTri - Guide de Tri Sélectif Intelligent & Recyclage 2025</title>
-    <meta name="description" content="EcoTri vous aide à mieux recycler. Guide complet sur le tri des déchets en France, impact CO2 et points de collecte proches de vous.">
+    <title>EcoTri - Guide de Tri Sélectif Intelligent & Recyclage France 2025</title>
+    <meta name="description" content="EcoTri : Identifiez vos déchets instantanément. Guide complet sur les consignes de tri 2025, impact écologique et points de collecte à proximité.">
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -20,46 +20,12 @@
         :root { --emerald-primary: #10b981; }
         html, body { height: 100%; margin: 0; padding: 0; }
         body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f8fafc; overflow-x: hidden; }
-        
-        .leaflet-container { 
-            border-radius: 1.5rem; 
-            z-index: 10; 
-            border: 1px solid #e2e8f0; 
-            height: 100% !important;
-            width: 100% !important;
-        }
-        
+        .leaflet-container { border-radius: 1.5rem; z-index: 10; border: 1px solid #e2e8f0; height: 100% !important; width: 100% !important; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        
-        @keyframes scan {
-            0% { transform: translateY(0); opacity: 0; }
-            50% { opacity: 1; }
-            100% { transform: translateY(160px); opacity: 0; }
-        }
-        .scanning-line {
-            width: 100%;
-            height: 3px;
-            background: linear-gradient(to right, transparent, var(--emerald-primary), transparent);
-            box-shadow: 0 0 15px var(--emerald-primary);
-            position: absolute;
-            top: 0;
-            animation: scan 2s ease-in-out infinite;
-        }
-        
+        @keyframes scan { 0% { transform: translateY(0); opacity: 0; } 50% { opacity: 1; } 100% { transform: translateY(160px); opacity: 0; } }
+        .scanning-line { width: 100%; height: 3px; background: linear-gradient(to right, transparent, var(--emerald-primary), transparent); box-shadow: 0 0 15px var(--emerald-primary); position: absolute; top: 0; animation: scan 2s ease-in-out infinite; }
         #root { min-height: 100%; display: flex; flex-direction: column; }
-
-        .sr-only-seo {
-            position: absolute;
-            width: 1px;
-            height: 1px;
-            padding: 0;
-            margin: -1px;
-            overflow: hidden;
-            clip: rect(0, 0, 0, 0);
-            white-space: nowrap;
-            border-width: 0;
-        }
     </style>
 <script type="importmap">
 {
@@ -80,9 +46,21 @@
 <link rel="stylesheet" href="/index.css">
 </head>
 <body class="text-slate-900">
-    <div class="sr-only-seo">
-        <h1>EcoTri : Guide Ultime du Tri Sélectif en France 2025</h1>
-        <p>Information sur le recyclage, impact écologique et points de collecte.</p>
+    <!-- Contenu visible par les robots AdSense avant le rendu React -->
+    <div id="seo-content" style="display:none">
+        <h1>Guide Expert du Tri et du Recyclage en France - Edition 2025</h1>
+        <article>
+            <h2>Les Nouvelles Consignes de Tri 2025</h2>
+            <p>Depuis l'extension des consignes de tri (ECT), tous les emballages plastiques, métalliques et cartons vont dans le bac jaune. EcoTri vous aide à décrypter les logos de recyclage.</p>
+        </article>
+        <article>
+            <h2>Le Tri des Biodéchets : Une Obligation Légale</h2>
+            <p>La loi AGEC impose désormais à chaque foyer français de trier ses déchets organiques. Compostage domestique ou collecte municipale, découvrez les solutions proches de vous.</p>
+        </article>
+        <article>
+            <h2>Impact Écologique et Économie Circulaire</h2>
+            <p>Recycler une tonne de carton sauve 17 arbres et permet d'économiser des milliers de litres d'eau. Notre outil calcule l'impact positif de vos gestes quotidiens.</p>
+        </article>
     </div>
 
     <div id="root"></div>
