@@ -50,7 +50,8 @@ function MainApp() {
       if (res) {
         setResult(res);
         setIsAnalyzing(false);
-        setChatSession(startEcoChat(res));
+        const session = startEcoChat(res);
+        setChatSession(session);
         
         generateWasteImage(res.itemName).then(img => {
           if (img) setResult(prev => prev ? { ...prev, imageUrl: img } : null);
@@ -74,7 +75,7 @@ function MainApp() {
     } catch (err: any) {
       setIsAnalyzing(false);
       console.error(err);
-      alert("Erreur d'analyse. Vérifiez que votre clé API Gemini est bien configurée dans les secrets GitHub.");
+      alert("Erreur d'analyse. Un problème est survenu avec le service d'intelligence artificielle.");
     }
   };
 
@@ -88,7 +89,8 @@ function MainApp() {
       { min: 1200, label: "Maître du Cycle", icon: "♾️" }
     ];
     const currentGrade = [...GRADES].reverse().find(g => ecoPoints >= g.min) || GRADES[0];
-    const nextGrade = GRADES[GRADES.indexOf(currentGrade) + 1];
+    const nextGradeIdx = GRADES.indexOf(currentGrade) + 1;
+    const nextGrade = GRADES[nextGradeIdx];
     let progress = nextGrade ? ((ecoPoints - currentGrade.min) / (nextGrade.min - currentGrade.min)) * 100 : 100;
     return { ...currentGrade, progress };
   }, [ecoPoints]);
@@ -136,7 +138,7 @@ function MainApp() {
         <div className="flex flex-col px-7 pt-12 pb-24 space-y-14 animate-in fade-in slide-in-from-bottom-4 duration-700">
           <header className="text-center space-y-6">
             <div className="inline-flex p-8 bg-gradient-to-br from-emerald-50 to-white rounded-[3.5rem] shadow-2xl border border-emerald-100/50 relative animate-float">
-              <span className="text-7xl">♻️</span>
+              <span className="text-7xl" role="img" aria-label="Logo Recyclage">♻️</span>
               <div className="absolute -top-2 -right-2 w-8 h-8 bg-emerald-500 rounded-full border-4 border-white animate-pulse"></div>
             </div>
             <div className="space-y-2">
@@ -154,6 +156,7 @@ function MainApp() {
                 onChange={e => setQuery(e.target.value)} 
                 onKeyDown={e => e.key === 'Enter' && handleProcess(query)} 
                 placeholder="Quel déchet aujourd'hui ?" 
+                aria-label="Rechercher un déchet"
                 className="w-full bg-white rounded-[2.2rem] py-7 pl-9 pr-48 text-xl font-[800] shadow-2xl border border-slate-100 focus:border-emerald-500 outline-none transition-all placeholder:text-slate-300" 
               />
               <div className="absolute right-2.5 top-2.5 bottom-2.5 flex gap-2">
@@ -165,6 +168,7 @@ function MainApp() {
                       if (videoRef.current) videoRef.current.srcObject = stream;
                     } catch (e) { alert("Accès caméra refusé."); }
                   }} 
+                  aria-label="Prendre une photo"
                   className="w-14 h-14 bg-slate-50 text-slate-400 rounded-2xl flex items-center justify-center hover:bg-emerald-50 hover:text-emerald-600 transition-all border border-slate-100 active:scale-90"
                 >
                   <span className="text-2xl">📸</span>
@@ -238,7 +242,7 @@ function MainApp() {
                 setIsCameraActive(false);
                 handleProcess({ data: base, mimeType: 'image/jpeg' });
               }
-            }} className="w-24 h-24 bg-white rounded-full border-[10px] border-white/20 shadow-3xl active:scale-90 transition-all flex items-center justify-center">
+            }} aria-label="Déclencher la capture" className="w-24 h-24 bg-white rounded-full border-[10px] border-white/20 shadow-3xl active:scale-90 transition-all flex items-center justify-center">
                <div className="w-16 h-16 rounded-full border-4 border-slate-900/5"></div>
             </button>
             <div className="w-24"></div>

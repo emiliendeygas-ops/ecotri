@@ -1,42 +1,24 @@
 import { GoogleGenAI, Type, Chat, GenerateContentResponse } from "@google/genai";
 import { SortingResult, BinType, CollectionPoint } from "../types";
 
-/**
- * Récupère la clé API. 
- * Dans GitHub, le secret est VITE_API_KEY.
- * Vite l'injecte dans import.meta.env.VITE_API_KEY lors du build.
- */
-const getApiKey = () => {
-  // @ts-ignore
-  const viteKey = import.meta.env?.VITE_API_KEY;
-  // @ts-ignore
-  const processKey = typeof process !== 'undefined' ? process.env?.API_KEY : "";
-  
-  return viteKey || processKey || "";
-};
-
+// Accès direct à la clé d'environnement selon les règles de l'expert
 const getAi = () => {
-  const apiKey = getApiKey();
-  // On crée l'instance seulement au moment de l'appel
-  return new GoogleGenAI({ apiKey });
+  return new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
 };
 
 export const analyzeWaste = async (input: string | { data: string, mimeType: string }): Promise<SortingResult | null> => {
   try {
     const ai = getAi();
     const isImage = typeof input !== 'string';
-    const parts = isImage 
-      ? [{ inlineData: input }, { text: "Analyse ce déchet pour le tri en France (Règles CITEO 2025). Réponds exclusivement en JSON." }]
-      : [{ text: `Consigne de tri 2025 pour l'objet : "${input}". Réponds exclusivement en JSON.` }];
+    const contents = isImage 
+      ? { parts: [{ inlineData: input }, { text: "Analyse ce déchet pour le tri en France (Règles CITEO 2025). Réponds exclusivement en JSON." }] }
+      : "Consigne de tri 2025 pour l'objet : \"" + input + "\". Réponds exclusivement en JSON.";
 
     const response: GenerateContentResponse = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
-      contents: { parts },
+      contents,
       config: {
-        systemInstruction: `Tu es SnapSort, l'expert ultime du tri sélectif.
-        Détermine le bac approprié (JAUNE, VERT, GRIS, COMPOST, DECHETTERIE, POINT_APPORT).
-        Sois précis sur les consignes françaises 2025 (tous les emballages se trient).
-        Retourne : itemName, bin, explanation, isRecyclable, et impact (co2Saved, waterSaved, energySaved).`,
+        systemInstruction: "Tu es SnapSort, l'expert ultime du tri sélectif. Détermine le bac approprié (JAUNE, VERT, GRIS, COMPOST, DECHETTERIE, POINT_APPORT). Sois précis sur les consignes françaises 2025 (tous les emballages se trient). Retourne : itemName, bin, explanation, isRecyclable, et impact (co2Saved, waterSaved, energySaved).",
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
@@ -71,28 +53,24 @@ export const findNearbyPoints = async (binType: BinType, itemName: string, lat: 
   try {
     const ai = getAi();
     const response = await ai.models.generateContent({
-      model: "gemini-3-pro-preview",
-      contents: `Où jeter : ${itemName} (${binType}) autour de moi (lat: ${lat}, lng: ${lng}) ?`,
+      model: "gemini-3-pro-image-preview", // Recommandé pour la recherche grounding
+      contents: "Où jeter : " + itemName + " (" + binType + ") autour de moi (lat: " + lat + ", lng: " + lng + ") ?",
       config: {
-        tools: [{ googleMaps: {} }],
-        toolConfig: {
-          retrievalConfig: {
-            latLng: { latitude: lat, longitude: lng }
-          }
-        }
+        tools: [{ googleSearch: {} }], // Utilisation de googleSearch pour le grounding
       },
     });
 
     const chunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
     const points: CollectionPoint[] = chunks
-      .filter(c => c.maps)
+      .filter(c => c.web)
       .map(c => ({
-        name: c.maps?.title || "Point de collecte",
-        uri: c.maps?.uri || "",
+        name: c.web?.title || "Point de collecte",
+        uri: c.web?.uri || "",
       }));
 
     return points;
   } catch (e) {
+    console.error("Erreur recherche points:", e);
     return [];
   }
 };
@@ -102,12 +80,16 @@ export const generateWasteImage = async (itemName: string): Promise<string | nul
     const ai = getAi();
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash-image',
-      contents: { parts: [{ text: `Isometric 3D 4K render of ${itemName} on a solid white background, high quality recycling icon style.` }] },
+      contents: { parts: [{ text: "Isometric 3D 4K render of " + itemName + " on a solid white background, high quality recycling icon style." }] },
       config: { imageConfig: { aspectRatio: "1:1" } }
     });
     
-    const part = response.candidates?.[0]?.content?.parts.find(p => p.inlineData);
-    return part ? `data:image/png;base64,${part.inlineData.data}` : null;
+    for (const part of response.candidates?.[0]?.content?.parts || []) {
+      if (part.inlineData) {
+        return `data:image/png;base64,${part.inlineData.data}`;
+      }
+    }
+    return null;
   } catch (e) { 
     return null; 
   }
@@ -118,7 +100,7 @@ export const startEcoChat = (result: SortingResult): Chat => {
   return ai.chats.create({
     model: 'gemini-3-flash-preview',
     config: {
-      systemInstruction: `Tu es l'EcoCoach de SnapSort. L'utilisateur vient de trier "${result.itemName}". Donne des astuces de réduction à la source ou d'Upcycling. Sois fun et encourageant.`,
+      systemInstruction: "Tu es l'EcoCoach de SnapSort. L'utilisateur vient de trier \"" + result.itemName + "\". Donne des astuces de réduction à la source ou d'Upcycling. Sois fun et encourageant.",
     },
   });
 };
@@ -150,7 +132,7 @@ export const getDailyEcoTip = async (): Promise<{ title: string; content: string
 export const PRIVACY_POLICY = `
   <h2 class="text-xl font-black mb-4">Protection des données</h2>
   <p class="mb-4">SnapSort utilise l'IA Gemini pour traiter vos images localement. Aucune photo n'est vendue à des tiers.</p>
-  <p>Votre position GPS est utilisée uniquement pour la recherche de bornes via Google Maps Grounding.</p>
+  <p>Votre position GPS est utilisée uniquement pour la recherche de bornes via Google Search Grounding.</p>
 `;
 
 export const TERMS_OF_SERVICE = `
