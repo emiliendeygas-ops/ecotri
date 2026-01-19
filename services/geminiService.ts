@@ -2,19 +2,22 @@ import { GoogleGenAI, Type, Chat, GenerateContentResponse } from "@google/genai"
 import { SortingResult, BinType, CollectionPoint } from "../types";
 
 /**
- * Récupère la clé API en priorité depuis les variables injectées par GitHub/Vite.
+ * Récupère la clé API. 
+ * Dans GitHub, le secret est VITE_API_KEY.
+ * Vite l'injecte dans import.meta.env.VITE_API_KEY lors du build.
  */
 const getApiKey = () => {
-  // On cherche en priorité VITE_API_KEY (votre secret GitHub)
   // @ts-ignore
-  const viteKey = (import.meta as any).env?.VITE_API_KEY;
-  const processKey = process.env.API_KEY;
+  const viteKey = import.meta.env?.VITE_API_KEY;
+  // @ts-ignore
+  const processKey = typeof process !== 'undefined' ? process.env?.API_KEY : "";
   
   return viteKey || processKey || "";
 };
 
 const getAi = () => {
   const apiKey = getApiKey();
+  // On crée l'instance seulement au moment de l'appel
   return new GoogleGenAI({ apiKey });
 };
 
@@ -60,7 +63,7 @@ export const analyzeWaste = async (input: string | { data: string, mimeType: str
     return response.text ? JSON.parse(response.text) : null;
   } catch (error) {
     console.error("Erreur d'analyse SnapSort:", error);
-    return null;
+    throw error;
   }
 };
 

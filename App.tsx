@@ -8,61 +8,6 @@ import { SortingResult } from './types';
 import { Chat } from '@google/genai';
 import { AdBanner } from './components/AdBanner';
 
-const ApiKeyGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [hasKey, setHasKey] = useState<boolean | null>(null);
-
-  useEffect(() => {
-    const checkKey = async () => {
-      // @ts-ignore
-      const viteKey = (import.meta as any).env?.VITE_API_KEY;
-      const processKey = process.env.API_KEY;
-
-      if (viteKey || processKey) {
-        setHasKey(true);
-      } else if (typeof (window as any).aistudio?.hasSelectedApiKey === 'function') {
-        const selected = await (window as any).aistudio.hasSelectedApiKey();
-        setHasKey(selected);
-      } else {
-        setHasKey(false);
-      }
-    };
-    checkKey();
-  }, []);
-
-  const handleOpenSelect = async () => {
-    if (typeof (window as any).aistudio?.openSelectKey === 'function') {
-      await (window as any).aistudio.openSelectKey();
-      setHasKey(true);
-    }
-  };
-
-  if (hasKey === null) return null;
-
-  if (!hasKey) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-white p-10 text-center font-['Plus_Jakarta_Sans']">
-        <div className="w-28 h-28 bg-emerald-50 rounded-[3rem] shadow-2xl shadow-emerald-100 flex items-center justify-center text-5xl mb-10 border border-emerald-100 animate-float">🗝️</div>
-        <h1 className="text-4xl font-[900] text-slate-900 mb-4 tracking-tighter">SnapSort AI</h1>
-        <p className="text-slate-500 mb-12 max-w-sm leading-relaxed font-bold text-sm">
-          Activez la puissance de l'IA pour sauver la planète. Une clé API Google Gemini est nécessaire.
-        </p>
-        <div className="space-y-6 w-full max-w-xs">
-          <button 
-            onClick={handleOpenSelect} 
-            className="w-full bg-slate-900 text-white py-6 rounded-[2.2rem] font-black shadow-xl shadow-slate-200 hover:bg-emerald-600 transition-all active:scale-95 transform"
-          >
-            Lier ma clé API
-          </button>
-          <a href="https://ai.google.dev/gemini-api/docs/billing" target="_blank" rel="noopener noreferrer" className="block text-[10px] font-black text-slate-300 uppercase tracking-[0.3em] pt-4 hover:text-emerald-500 transition-colors">
-            Besoin d'aide ? ↗
-          </a>
-        </div>
-      </div>
-    );
-  }
-  return <>{children}</>;
-};
-
 function MainApp() {
   const [query, setQuery] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -129,6 +74,7 @@ function MainApp() {
     } catch (err: any) {
       setIsAnalyzing(false);
       console.error(err);
+      alert("Erreur d'analyse. Vérifiez que votre clé API Gemini est bien configurée dans les secrets GitHub.");
     }
   };
 
@@ -324,10 +270,4 @@ function MainApp() {
   );
 }
 
-export default function App() {
-  return (
-    <ApiKeyGuard>
-      <MainApp />
-    </ApiKeyGuard>
-  );
-}
+export default MainApp;
