@@ -1,11 +1,10 @@
-
 import { initializeApp, getApps } from "firebase/app";
 import { getAnalytics, logEvent, Analytics, isSupported } from "firebase/analytics";
 
 const getEnv = (key: string): string => {
   try {
     // @ts-ignore
-    return process.env[key] || (import.meta.env && import.meta.env[key]) || "";
+    return (import.meta.env && import.meta.env[key]) || (typeof process !== 'undefined' ? process.env[key] : "") || "";
   } catch (e) {
     return "";
   }
@@ -14,7 +13,7 @@ const getEnv = (key: string): string => {
 const firebaseConfig = {
   apiKey: getEnv("VITE_FIREBASE_API_KEY"),
   authDomain: getEnv("VITE_FIREBASE_AUTH_DOMAIN"),
-  projectId: getEnv("VITE_FIREBASE_PROJECT_ID"),
+  projectId: getEnv("VITE_FIREBASE_PROJECT_ID") || "app-ecotri",
   storageBucket: getEnv("VITE_FIREBASE_STORAGE_BUCKET"),
   messagingSenderId: getEnv("VITE_FIREBASE_MESSAGING_SENDER_ID"),
   appId: getEnv("VITE_FIREBASE_APP_ID"),
