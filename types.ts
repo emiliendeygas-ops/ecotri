@@ -5,7 +5,21 @@ export enum BinType {
   GRIS = 'GRIS',
   COMPOST = 'COMPOST',
   DECHETTERIE = 'DECHETTERIE',
-  POINT_APPORT = 'POINT_APPORT',
+  POINT_APPORT = 'POINT_APPORT'
+}
+
+export interface SortingResult {
+  itemName: string;
+  bin: BinType;
+  explanation: string;
+  isRecyclable: boolean;
+  impact?: {
+    co2Saved: number;
+    waterSaved: number;
+    energySaved: string;
+  };
+  imageUrl?: string;
+  nearbyPoints?: CollectionPoint[];
 }
 
 export interface CollectionPoint {
@@ -13,25 +27,6 @@ export interface CollectionPoint {
   uri: string;
   lat?: number;
   lng?: number;
-}
-
-export interface EcoImpact {
-  co2Saved: number; // en grammes
-  waterSaved: number; // en litres
-  energySaved: string; // ex: "2h d'ampoule LED"
-}
-
-export interface SortingResult {
-  itemName: string;
-  bin: BinType;
-  explanation: string;
-  tips: string[];
-  isRecyclable: boolean;
-  imageUrl?: string;
-  zeroWasteAlternative?: string;
-  nearbyPoints?: CollectionPoint[];
-  impact?: EcoImpact;
-  suggestedQuestions?: string[];
 }
 
 export interface HistoryItem {

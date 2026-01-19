@@ -1,10 +1,9 @@
-
 {
+  "name": "SnapSort - AI Waste Sorting Guide",
+  "description": "Identify your waste instantly by text, voice, or photo with Gemini AI. Your international recycling assistant.",
   "requestFramePermissions": [
     "camera",
     "microphone",
     "geolocation"
-  ],
-  "name": "EcoSnap - AI Waste Sorting Guide",
-  "description": "Identify your waste instantly by text, voice, or photo with Gemini AI. Your international recycling assistant."
+  ]
 }

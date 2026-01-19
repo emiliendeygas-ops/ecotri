@@ -1,6 +1,5 @@
-
 import React, { useState, useRef, useEffect } from 'react';
-import { SortingResult, CollectionPoint } from '../types';
+import { SortingResult } from '../types';
 import { BIN_MAPPING } from '../constants';
 import { MapView } from './MapView';
 import { AdBanner } from './AdBanner';
@@ -34,80 +33,133 @@ export const ResultCard: React.FC<ResultCardProps> = ({
   return (
     <div className="animate-in pb-12">
       <div className={`${binInfo.color} p-12 text-center transition-colors duration-500 relative overflow-hidden`}>
-        <div className="mb-6 flex justify-center">
+        <div className="absolute inset-0 opacity-10 pointer-events-none select-none overflow-hidden">
+           <div className="text-[20rem] font-black absolute -bottom-20 -right-20 rotate-12">{binInfo.icon}</div>
+        </div>
+        
+        <div className="mb-6 flex justify-center relative z-10">
           {result.imageUrl ? (
-            <div className="p-4 bg-white/30 backdrop-blur-xl rounded-[2.5rem] shadow-xl animate-in">
-              <img src={result.imageUrl} alt={result.itemName} className="w-24 h-24 object-contain" />
+            <div className="p-4 bg-white/40 backdrop-blur-2xl rounded-[3rem] shadow-2xl border border-white/50 animate-in fade-in zoom-in duration-500">
+              <img src={result.imageUrl} alt={result.itemName} className="w-28 h-28 object-contain drop-shadow-lg" />
             </div>
           ) : (
-            <div className="w-24 h-24 bg-white/20 rounded-[2.5rem] flex items-center justify-center text-3xl animate-pulse">📦</div>
+            <div className="w-28 h-28 bg-white/30 backdrop-blur-xl rounded-[3rem] flex items-center justify-center text-4xl shadow-xl border border-white/40 animate-pulse">
+              {binInfo.icon}
+            </div>
           )}
         </div>
-        <h2 className={`text-3xl font-black capitalize mb-4 ${binInfo.text}`}>{result.itemName}</h2>
-        <div className="inline-flex items-center gap-2 bg-white px-6 py-2 rounded-full shadow-lg">
-          <span className="font-black text-slate-800 text-[10px] uppercase tracking-widest">{binInfo.label}</span>
+        
+        <h2 className={`text-4xl font-[900] capitalize mb-4 ${binInfo.text} drop-shadow-sm`}>{result.itemName}</h2>
+        <div className="inline-flex items-center gap-2 bg-white px-8 py-3 rounded-full shadow-2xl border border-slate-100">
+          <span className="font-black text-slate-900 text-[11px] uppercase tracking-[0.2em]">{binInfo.label}</span>
         </div>
       </div>
 
-      <div className="bg-white -mt-8 rounded-t-[3rem] p-8 space-y-8 relative z-10 shadow-xl">
-        <section>
-          <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Conseil de Tri</h3>
-          <p className="text-slate-800 font-bold text-lg leading-snug">{result.explanation}</p>
-        </section>
-
-        <section className="bg-slate-50 p-6 rounded-[2.5rem] border border-slate-100 space-y-4">
-          <h3 className="text-[10px] font-black text-slate-500 uppercase flex items-center gap-2"><span>💬</span> EcoCoach IA</h3>
-          <div className="max-h-48 overflow-y-auto space-y-3 no-scrollbar">
-            {chatMessages.map((msg, i) => (
-              <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[85%] p-3 rounded-2xl text-xs font-bold ${msg.role === 'user' ? 'bg-emerald-600 text-white' : 'bg-white border border-slate-100 text-slate-700'}`}>
-                  {msg.text}
-                </div>
-              </div>
-            ))}
-            {isChatting && <div className="text-[10px] font-bold text-emerald-500 animate-pulse">L'EcoCoach réfléchit...</div>}
-            <div ref={chatEndRef} />
-          </div>
-          <form onSubmit={(e) => { e.preventDefault(); onAskQuestion(chatInput); setChatInput(''); }} className="relative">
-            <input type="text" value={chatInput} onChange={e => setChatInput(e.target.value)} placeholder="Une question ?" className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 text-xs font-bold outline-none focus:border-emerald-500" />
-            <button type="submit" className="absolute right-2 top-2 bottom-2 bg-emerald-600 text-white px-3 rounded-lg text-[10px] font-black">ENVOYER</button>
-          </form>
+      <div className="bg-white -mt-10 rounded-t-[3.5rem] p-8 space-y-10 relative z-10 shadow-2xl border-t border-slate-50">
+        <section className="space-y-3">
+          <h3 className="text-[11px] font-[900] text-slate-400 uppercase tracking-widest flex items-center gap-2">
+            <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
+            Conseil de tri
+          </h3>
+          <p className="text-slate-900 font-bold text-xl leading-snug tracking-tight">{result.explanation}</p>
         </section>
 
         {result.impact && (
-          <div className="grid grid-cols-3 gap-2">
-            <div className="bg-emerald-50 p-4 rounded-2xl text-center">
-              <span className="block text-xl mb-1">☁️</span>
-              <span className="text-[10px] font-black text-emerald-600">-{result.impact.co2Saved}g CO2</span>
+          <div className="grid grid-cols-3 gap-3">
+            <div className="bg-emerald-50/50 p-5 rounded-[2rem] border border-emerald-100 text-center group hover:bg-emerald-100 transition-colors">
+              <span className="block text-2xl mb-2 group-hover:scale-110 transition-transform">☁️</span>
+              <span className="text-[11px] font-black text-emerald-700 leading-tight">-{result.impact.co2Saved}g CO2</span>
             </div>
-            <div className="bg-emerald-50 p-4 rounded-2xl text-center">
-              <span className="block text-xl mb-1">💧</span>
-              <span className="text-[10px] font-black text-emerald-600">{result.impact.waterSaved}L Eau</span>
+            <div className="bg-blue-50/50 p-5 rounded-[2rem] border border-blue-100 text-center group hover:bg-blue-100 transition-colors">
+              <span className="block text-2xl mb-2 group-hover:scale-110 transition-transform">💧</span>
+              <span className="text-[11px] font-black text-blue-700 leading-tight">{result.impact.waterSaved}L Eau</span>
             </div>
-            <div className="bg-emerald-50 p-4 rounded-2xl text-center">
-              <span className="block text-xl mb-1">⚡</span>
-              <span className="text-[8px] font-black text-emerald-600 leading-tight">{result.impact.energySaved}</span>
+            <div className="bg-amber-50/50 p-5 rounded-[2rem] border border-amber-100 text-center group hover:bg-amber-100 transition-colors">
+              <span className="block text-2xl mb-2 group-hover:scale-110 transition-transform">⚡</span>
+              <span className="text-[9px] font-black text-amber-700 leading-tight">{result.impact.energySaved}</span>
             </div>
           </div>
         )}
 
+        <section className="bg-slate-50 p-8 rounded-[3rem] border border-slate-100 space-y-6">
+          <div className="flex justify-between items-center">
+             <h3 className="text-[11px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
+               <span className="animate-bounce">💬</span> EcoCoach IA
+             </h3>
+             {isChatting && <div className="flex gap-1"><div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-bounce"></div><div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-bounce [animation-delay:0.2s]"></div><div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-bounce [animation-delay:0.4s]"></div></div>}
+          </div>
+          
+          <div className="max-h-64 overflow-y-auto space-y-4 no-scrollbar pr-1">
+            {chatMessages.length === 0 && !isChatting && (
+              <p className="text-[11px] text-slate-400 italic font-medium">Des doutes ? Demandez-moi comment réutiliser cet objet !</p>
+            )}
+            {chatMessages.map((msg, i) => (
+              <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                <div className={`max-w-[85%] p-4 rounded-[1.5rem] text-[13px] font-bold shadow-sm ${msg.role === 'user' ? 'bg-emerald-600 text-white rounded-tr-none' : 'bg-white border border-slate-100 text-slate-800 rounded-tl-none'}`}>
+                  {msg.text}
+                </div>
+              </div>
+            ))}
+            <div ref={chatEndRef} />
+          </div>
+          
+          <form onSubmit={(e) => { e.preventDefault(); if(chatInput.trim()){ onAskQuestion(chatInput); setChatInput(''); } }} className="relative">
+            <input 
+              type="text" 
+              value={chatInput} 
+              onChange={e => setChatInput(e.target.value)} 
+              placeholder="Une précision ?" 
+              className="w-full bg-white border border-slate-200 rounded-2xl py-4 pl-5 pr-20 text-sm font-bold outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all shadow-sm" 
+            />
+            <button 
+              type="submit" 
+              disabled={isChatting || !chatInput.trim()}
+              className="absolute right-2 top-2 bottom-2 bg-slate-900 text-white px-5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-600 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              OK
+            </button>
+          </form>
+        </section>
+
         <AdBanner />
 
-        <section className="space-y-4">
-          <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Points de Collecte 📍</h3>
+        <section className="space-y-5">
+          <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+            <span className="text-lg">📍</span> Points de collecte
+          </h3>
           {!userLocation ? (
-            <button onClick={onRequestLocation} disabled={isLocating} className="w-full bg-slate-50 p-6 rounded-[2.5rem] text-xs font-bold text-slate-500 border-2 border-dashed border-slate-200">
-              {isLocating ? "Localisation en cours..." : "Afficher les bornes autour de moi"}
+            <button 
+              onClick={onRequestLocation} 
+              disabled={isLocating} 
+              className="w-full bg-slate-50 hover:bg-emerald-50 p-8 rounded-[3rem] text-sm font-black text-slate-600 border-2 border-dashed border-slate-200 hover:border-emerald-300 transition-all group"
+            >
+              {isLocating ? (
+                <span className="flex items-center justify-center gap-3">
+                  <div className="w-4 h-4 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin"></div>
+                  Localisation...
+                </span>
+              ) : (
+                <span className="group-hover:text-emerald-700">Afficher les bornes autour de moi</span>
+              )}
             </button>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-6 animate-in slide-in-from-top-2 duration-500">
               <MapView points={result.nearbyPoints || []} userLocation={userLocation} />
-              {(!result.nearbyPoints || result.nearbyPoints.length === 0) && <p className="text-[10px] text-slate-400 italic text-center">Recherche des bornes les plus proches...</p>}
+              {(!result.nearbyPoints || result.nearbyPoints.length === 0) && (
+                <div className="text-center py-4 bg-slate-50 rounded-2xl border border-slate-100">
+                  <p className="text-[11px] text-slate-500 font-bold animate-pulse">Recherche des bornes les plus proches...</p>
+                </div>
+              )}
             </div>
           )}
         </section>
 
-        <button onClick={onReset} className="w-full bg-slate-900 text-white py-5 rounded-[2.5rem] font-black text-md shadow-xl">Nouvelle recherche</button>
+        <button 
+          onClick={onReset} 
+          className="w-full bg-slate-900 text-white py-6 rounded-[3rem] font-black text-lg shadow-2xl hover:bg-emerald-700 transition-all active:scale-[0.98] transform"
+        >
+          Nouveau Scan
+        </button>
       </div>
     </div>
   );

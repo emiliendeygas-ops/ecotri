@@ -1,4 +1,3 @@
-
 import React from 'react';
 
 interface LayoutProps {
@@ -23,87 +22,71 @@ export const Layout: React.FC<LayoutProps> = ({
   onNavTerms
 }) => {
   return (
-    <div className="min-h-screen flex flex-col max-w-lg mx-auto bg-white shadow-2xl shadow-slate-200/50 border-x border-slate-50 relative selection:bg-emerald-100">
-      <header className="px-6 py-5 flex flex-col gap-3 sticky top-0 bg-white/90 backdrop-blur-xl z-[100] border-b border-slate-50/50">
+    <div className="min-h-screen flex flex-col max-w-lg mx-auto bg-white shadow-2xl shadow-emerald-900/5 border-x border-slate-50 relative selection:bg-emerald-100 font-['Plus_Jakarta_Sans']">
+      <header className="px-6 py-5 flex flex-col gap-4 sticky top-0 bg-white/90 backdrop-blur-3xl z-[100] border-b border-slate-100">
         <div className="flex justify-between items-center">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3.5">
             <div 
-              onClick={() => window.location.reload()}
-              className="w-10 h-10 bg-emerald-600 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-200/50 -rotate-3 transition-transform hover:rotate-0 cursor-pointer"
+              onClick={() => window.location.href = '/'}
+              className="w-11 h-11 bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-[1.2rem] flex items-center justify-center shadow-lg shadow-emerald-200 rotate-2 hover:rotate-0 transition-all cursor-pointer active:scale-90"
             >
-               <span className="text-white text-lg">♻️</span>
+               <span className="text-white text-xl">♻️</span>
             </div>
             <div className="flex flex-col">
-              <h1 className="font-[900] text-lg tracking-tight text-slate-900 leading-none">EcoTri</h1>
-              <div className="flex items-center gap-1.5 mt-0.5">
-                <span className="text-xs">{gradeIcon}</span>
-                <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest leading-none">{level}</span>
+              <h1 className="font-black text-xl tracking-tighter text-slate-900 leading-none">SnapSort</h1>
+              <div className="flex items-center gap-1.5 mt-1">
+                <span className="text-[10px] filter drop-shadow-sm">{gradeIcon}</span>
+                <span className="text-[9px] font-[800] text-emerald-600 uppercase tracking-widest leading-none">{level}</span>
               </div>
             </div>
           </div>
           
           <div className="flex items-center gap-2">
-            <div className="relative">
-              <div className={`bg-slate-50 px-4 py-2 rounded-2xl flex items-center gap-2 border border-slate-100 transition-all duration-300 ${showPointAnim ? 'scale-110 border-emerald-300 bg-emerald-50' : ''}`}>
+            <div className="relative group">
+              <div className={`bg-slate-50 px-4 py-2.5 rounded-[1.2rem] flex items-center gap-2.5 border border-slate-100 shadow-sm transition-all duration-500 ${showPointAnim ? 'ring-4 ring-emerald-500/20 bg-emerald-50 border-emerald-100 scale-105' : ''}`}>
                 <span className="text-emerald-500 text-sm animate-pulse">🍃</span>
-                <span className="font-[900] text-sm text-slate-700">{points}</span>
+                <span className="font-black text-sm text-slate-800 tracking-tight">{points}</span>
               </div>
               {showPointAnim && (
-                <div className="absolute -top-10 right-0 bg-emerald-600 text-white text-[10px] font-black px-3 py-1.5 rounded-full animate-bounce shadow-xl ring-4 ring-emerald-50 whitespace-nowrap">
-                  BRAVO ! +10
+                <div className="absolute -top-12 right-0 bg-slate-900 text-white text-[10px] font-black px-4 py-2.5 rounded-2xl animate-bounce shadow-2xl ring-4 ring-white whitespace-nowrap z-20">
+                  ACTION ÉCO ! +10
                 </div>
               )}
             </div>
           </div>
         </div>
-        
-        <div className="w-full h-1 bg-slate-100 rounded-full overflow-hidden">
+        <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden p-[2px]">
           <div 
-            className="h-full bg-emerald-500 transition-all duration-700 ease-out"
-            style={{ width: `${progress}%` }}
+            className="h-full bg-gradient-to-r from-emerald-400 via-emerald-500 to-emerald-600 rounded-full transition-all duration-1000 ease-in-out shadow-[0_0_10px_rgba(16,185,129,0.3)]" 
+            style={{ width: `${Math.max(4, progress)}%` }} 
           />
         </div>
       </header>
 
-      <main className="flex-1 overflow-y-auto no-scrollbar bg-gradient-to-b from-white to-slate-50/30">
+      <main className="flex-1 overflow-y-auto no-scrollbar bg-[#fcfdfe]">
         {children}
       </main>
 
-      <footer className="p-8 bg-white border-t border-slate-50 mt-auto">
-        <div className="text-center space-y-6">
-          <p className="text-[9px] font-black text-slate-300 uppercase tracking-[0.4em]">EcoTri Pro • CITEO 2025</p>
+      <footer className="p-12 bg-white border-t border-slate-50 mt-auto">
+        <div className="text-center space-y-8">
+          <div className="flex flex-col items-center gap-3">
+             <div className="w-10 h-1 bg-slate-100 rounded-full"></div>
+             <p className="text-[9px] font-black text-slate-300 uppercase tracking-[0.6em]">EcoSnap Intelligence • 2025</p>
+          </div>
           
-          <nav className="flex flex-row justify-center items-center gap-x-3 gap-y-1 text-slate-400">
-            <button 
-              onClick={onNavPrivacy} 
-              className="text-[10px] font-bold hover:text-emerald-600 transition-colors whitespace-nowrap py-1"
-            >
-              Confidentialité
-            </button>
-            <span className="text-slate-200 text-[8px] select-none">•</span>
-            <button 
-              onClick={onNavTerms} 
-              className="text-[10px] font-bold hover:text-emerald-600 transition-colors whitespace-nowrap py-1"
-            >
-              Conditions
-            </button>
-            <span className="text-slate-200 text-[8px] select-none">•</span>
-            <a 
-              href="mailto:contact@ecotri.fr" 
-              className="text-[10px] font-bold hover:text-emerald-600 transition-colors whitespace-nowrap py-1"
-            >
-              Contact
-            </a>
+          <nav className="flex flex-row justify-center items-center gap-x-6 text-slate-400">
+            <button onClick={onNavPrivacy} className="text-[10px] font-black hover:text-emerald-600 transition-colors uppercase tracking-[0.2em]">Privacy</button>
+            <div className="w-1 h-1 bg-slate-200 rounded-full"></div>
+            <button onClick={onNavTerms} className="text-[10px] font-black hover:text-emerald-600 transition-colors uppercase tracking-[0.2em]">Terms</button>
           </nav>
           
-          <p className="text-[10px] text-slate-300 px-4 leading-relaxed">
-            EcoTri utilise l'intelligence artificielle pour simplifier le tri. Nous nous basons sur les directives nationales de l'ADEME et de CITEO France.
+          <p className="text-[11px] text-slate-400/80 px-4 leading-relaxed font-semibold italic">
+            "Nous n'héritons pas de la terre de nos ancêtres, nous l'empruntons à nos enfants."
           </p>
           
-          <div className="flex justify-center gap-6 opacity-20 pt-2">
-            <div className="w-1 h-1 bg-slate-400 rounded-full"></div>
-            <div className="w-1 h-1 bg-slate-400 rounded-full"></div>
-            <div className="w-1 h-1 bg-slate-400 rounded-full"></div>
+          <div className="pt-4 flex justify-center items-center gap-2 opacity-40">
+             <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+             <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">System Online</span>
           </div>
         </div>
       </footer>

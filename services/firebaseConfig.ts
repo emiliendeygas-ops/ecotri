@@ -2,21 +2,13 @@
 import { initializeApp, getApps } from "firebase/app";
 import { getAnalytics, logEvent, Analytics, isSupported } from "firebase/analytics";
 
-// Fonction sécurisée pour récupérer les variables d'environnement
 const getEnv = (key: string): string => {
   try {
-    // Tentative via import.meta.env (Vite standard)
-    const viteEnv = (import.meta as any).env;
-    if (viteEnv && viteEnv[key]) return viteEnv[key];
-    
-    // Tentative via process.env (Node/Webpack fallback)
-    if (typeof process !== 'undefined' && process.env && process.env[key]) {
-      return process.env[key] as string;
-    }
+    // @ts-ignore
+    return process.env[key] || (import.meta.env && import.meta.env[key]) || "";
   } catch (e) {
-    // Silencieux
+    return "";
   }
-  return "";
 };
 
 const firebaseConfig = {
@@ -34,9 +26,8 @@ const eventQueue: { name: string; params?: object }[] = [];
 
 const checkConfig = () => {
   const hasMinConfig = firebaseConfig.apiKey && firebaseConfig.projectId && firebaseConfig.appId;
-  
   if (!hasMinConfig) {
-    console.debug("📊 [Firebase] Configuration absente ou incomplète. Analytics en attente.");
+    console.debug("📊 [Firebase] Missing configuration. Analytics disabled.");
     return false;
   }
   return true;
@@ -44,7 +35,6 @@ const checkConfig = () => {
 
 const initAnalytics = async () => {
   if (typeof window === 'undefined') return;
-  
   if (!checkConfig()) return;
 
   try {
@@ -53,7 +43,7 @@ const initAnalytics = async () => {
     
     if (supported) {
       analyticsInstance = getAnalytics(app);
-      console.log("📊 [Firebase] Initialisé avec succès.");
+      console.log("📊 [Firebase] Initialized successfully.");
       
       while (eventQueue.length > 0) {
         const event = eventQueue.shift();
@@ -61,7 +51,7 @@ const initAnalytics = async () => {
       }
     }
   } catch (e) {
-    console.warn("📊 [Firebase] Erreur d'initialisation (peut-être un bloqueur de pub):", e);
+    console.warn("📊 [Firebase] Initialization failed:", e);
   }
 };
 
@@ -69,15 +59,14 @@ initAnalytics();
 
 export const trackEvent = (eventName: string, params?: object) => {
   if (typeof window === 'undefined') return;
-  
+  console.log(`📡 [Track] ${eventName}`, params || "");
+
   if (analyticsInstance) {
     try {
       logEvent(analyticsInstance, eventName, params);
     } catch (e) {}
   } else {
-    // Si pas encore initialisé, on garde en file d'attente
     eventQueue.push({ name: eventName, params });
-    // On ré-essaye l'initialisation au cas où les clés seraient arrivées
     initAnalytics();
   }
 };
