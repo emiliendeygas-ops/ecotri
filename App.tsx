@@ -13,11 +13,18 @@ const ApiKeyGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   useEffect(() => {
     const checkKey = async () => {
+      // Priorité 1: Vérifier si une clé est déjà définie dans l'environnement
+      if (process.env.API_KEY && process.env.API_KEY !== "") {
+        setHasKey(true);
+        return;
+      }
+      
+      // Priorité 2: Vérifier via l'interface aistudio si disponible
       if (typeof (window as any).aistudio?.hasSelectedApiKey === 'function') {
         const selected = await (window as any).aistudio.hasSelectedApiKey();
         setHasKey(selected);
       } else {
-        setHasKey(!!process.env.API_KEY);
+        setHasKey(false);
       }
     };
     checkKey();
@@ -38,7 +45,7 @@ const ApiKeyGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         <div className="w-28 h-28 bg-emerald-50 rounded-[3rem] shadow-2xl shadow-emerald-100 flex items-center justify-center text-5xl mb-10 border border-emerald-100 animate-float">🗝️</div>
         <h1 className="text-4xl font-[900] text-slate-900 mb-4 tracking-tighter">SnapSort AI</h1>
         <p className="text-slate-500 mb-12 max-w-sm leading-relaxed font-bold text-sm">
-          Activez la puissance de l'IA pour sauver la planète. Une clé API Google Cloud (Paid) est nécessaire.
+          Activez la puissance de l'IA pour sauver la planète. Une clé API Google Gemini est nécessaire.
         </p>
         <div className="space-y-6 w-full max-w-xs">
           <button 
@@ -48,7 +55,7 @@ const ApiKeyGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             Lier ma clé API
           </button>
           <a href="https://ai.google.dev/gemini-api/docs/billing" target="_blank" rel="noopener noreferrer" className="block text-[10px] font-black text-slate-300 uppercase tracking-[0.3em] pt-4 hover:text-emerald-500 transition-colors">
-            Setup Guide ↗
+            Besoin d'aide ? ↗
           </a>
         </div>
       </div>
