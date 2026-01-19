@@ -2,10 +2,21 @@ import { GoogleGenAI, Type, Chat, GenerateContentResponse } from "@google/genai"
 import { SortingResult, BinType, CollectionPoint } from "../types";
 
 /**
- * World-class initialization: Creates a fresh instance for each call
- * to ensure we always use the latest process.env.API_KEY.
+ * Récupère la clé API en priorité depuis les variables injectées par GitHub/Vite.
  */
-const getAi = () => new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
+const getApiKey = () => {
+  // On cherche en priorité VITE_API_KEY (votre secret GitHub)
+  // @ts-ignore
+  const viteKey = (import.meta as any).env?.VITE_API_KEY;
+  const processKey = process.env.API_KEY;
+  
+  return viteKey || processKey || "";
+};
+
+const getAi = () => {
+  const apiKey = getApiKey();
+  return new GoogleGenAI({ apiKey });
+};
 
 export const analyzeWaste = async (input: string | { data: string, mimeType: string }): Promise<SortingResult | null> => {
   try {
@@ -46,8 +57,7 @@ export const analyzeWaste = async (input: string | { data: string, mimeType: str
       }
     });
 
-    const text = response.text; // Property access as per guidelines
-    return text ? JSON.parse(text) : null;
+    return response.text ? JSON.parse(response.text) : null;
   } catch (error) {
     console.error("Erreur d'analyse SnapSort:", error);
     return null;
@@ -57,9 +67,8 @@ export const analyzeWaste = async (input: string | { data: string, mimeType: str
 export const findNearbyPoints = async (binType: BinType, itemName: string, lat: number, lng: number): Promise<CollectionPoint[]> => {
   try {
     const ai = getAi();
-    // Use gemini-2.5-flash for maps grounding support
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-3-pro-preview",
       contents: `Où jeter : ${itemName} (${binType}) autour de moi (lat: ${lat}, lng: ${lng}) ?`,
       config: {
         tools: [{ googleMaps: {} }],
@@ -77,12 +86,10 @@ export const findNearbyPoints = async (binType: BinType, itemName: string, lat: 
       .map(c => ({
         name: c.maps?.title || "Point de collecte",
         uri: c.maps?.uri || "",
-        // Note: Lat/Lng might be in placeAnswerSources if needed
       }));
 
-    return points.length > 0 ? points : [];
+    return points;
   } catch (e) {
-    console.warn("Maps grounding failed, falling back to search", e);
     return [];
   }
 };
@@ -131,7 +138,7 @@ export const getDailyEcoTip = async (): Promise<{ title: string; content: string
         }
       }
     });
-    return JSON.parse(response.text || "null");
+    return response.text ? JSON.parse(response.text) : null;
   } catch (error) {
     return { title: "Le tri, c'est la vie", content: "Chaque geste compte pour protéger notre planète." };
   }

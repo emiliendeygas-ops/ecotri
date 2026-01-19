@@ -13,14 +13,13 @@ const ApiKeyGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   useEffect(() => {
     const checkKey = async () => {
-      // Priorité 1: Vérifier si une clé est déjà définie dans l'environnement
-      if (process.env.API_KEY && process.env.API_KEY !== "") {
+      // @ts-ignore
+      const viteKey = (import.meta as any).env?.VITE_API_KEY;
+      const processKey = process.env.API_KEY;
+
+      if (viteKey || processKey) {
         setHasKey(true);
-        return;
-      }
-      
-      // Priorité 2: Vérifier via l'interface aistudio si disponible
-      if (typeof (window as any).aistudio?.hasSelectedApiKey === 'function') {
+      } else if (typeof (window as any).aistudio?.hasSelectedApiKey === 'function') {
         const selected = await (window as any).aistudio.hasSelectedApiKey();
         setHasKey(selected);
       } else {
