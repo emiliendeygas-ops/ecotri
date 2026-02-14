@@ -63,7 +63,8 @@ export const Layout: React.FC<LayoutProps> = ({
         </div>
       </header>
 
-      <main className="flex-1 overflow-y-auto no-scrollbar bg-[#fcfdfe]">
+      {/* Rendu fluide sans scroll-y interne pour favoriser le scroll natif de la fenêtre */}
+      <main className="flex-1 bg-[#fcfdfe]">
         {children}
       </main>
 
@@ -71,7 +72,7 @@ export const Layout: React.FC<LayoutProps> = ({
         <div className="text-center space-y-8">
           <div className="flex flex-col items-center gap-3">
              <div className="w-10 h-1 bg-slate-100 rounded-full"></div>
-             <p className="text-[9px] font-black text-slate-300 uppercase tracking-[0.6em]">EcoSnap Intelligence • 2025</p>
+             <p className="text-[9px] font-black text-slate-300 uppercase tracking-[0.6em]">EcoSnap Intelligence • 2025-2026</p>
           </div>
           
           <nav className="flex flex-row justify-center items-center gap-x-6 text-slate-400">
@@ -81,12 +82,12 @@ export const Layout: React.FC<LayoutProps> = ({
           </nav>
           
           <p className="text-[11px] text-slate-400/80 px-4 leading-relaxed font-semibold italic">
-            "Nous n'héritons pas de la terre de nos ancêtres, nous l'empruntons à nos enfants."
+            "Pour un avenir durable, chaque geste de tri en 2026 construit le monde de demain."
           </p>
           
           <div className="pt-4 flex justify-center items-center gap-2 opacity-40">
              <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
-             <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">System Online</span>
+             <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">System 2026 Ready</span>
           </div>
         </div>
       </footer>

@@ -3,52 +3,52 @@ import { BinType } from './types';
 
 export const BIN_MAPPING: Record<string, { label: string; color: string; text: string; icon: string; desc: string }> = {
   [BinType.JAUNE]: { 
-    label: 'Bac Jaune', 
+    label: 'Bac Jaune 2026', 
     color: 'bg-[#FFD700]', 
     text: 'text-yellow-950', 
     icon: '📦',
-    desc: 'Emballages plastiques, métaux, cartons et tous les papiers.'
+    desc: 'TOUS les emballages sans exception (plastiques, métaux, cartons, papiers, petits métaux).'
   },
   [BinType.VERT]: { 
     label: 'Bac Verre', 
     color: 'bg-[#059669]', 
     text: 'text-white', 
     icon: '🍾',
-    desc: 'Bouteilles, pots et bocaux en verre (sans bouchons).'
+    desc: 'Bouteilles, pots et bocaux en verre. Les bouchons vont désormais aussi dans le bac jaune.'
   },
   [BinType.GRIS]: { 
     label: 'Bac Gris', 
     color: 'bg-[#475569]', 
     text: 'text-white', 
     icon: '🗑️',
-    desc: 'Ordures ménagères résiduelles (non recyclables).'
+    desc: 'Uniquement les déchets non recyclables (hygiène, poussière). Doit être réduit au minimum.'
   },
   [BinType.COMPOST]: { 
-    label: 'Composteur', 
+    label: 'Bio-déchets 2026', 
     color: 'bg-[#78350F]', 
     text: 'text-white', 
     icon: '🍎',
-    desc: 'Restes alimentaires, épluchures, marc de café.'
+    desc: 'Obligatoire : Restes alimentaires, épluchures. Collecte séparée ou compostage de proximité.'
   },
   [BinType.DECHETTERIE]: { 
     label: 'Déchèterie', 
     color: 'bg-[#2563EB]', 
     text: 'text-white', 
     icon: '🚛',
-    desc: 'Encombrants, gravats, produits toxiques et appareils électriques.'
+    desc: 'Objets volumineux, gravats, produits chimiques et DEEE (électronique).'
   },
   [BinType.POINT_APPORT]: { 
-    label: 'Point d\'apport', 
+    label: 'Point Textiles/Flux spécifiques', 
     color: 'bg-[#7C3AED]', 
     text: 'text-white', 
-    icon: '📍',
-    desc: 'Piles, ampoules, textile ou bornes spécifiques de quartier.'
+    icon: '👔',
+    desc: 'Nouveauté 2026 : 100% des textiles, chaussures et linges de maison doivent être déposés en borne.'
   },
 };
 
 export const RECYCLING_GUIDE = [
-  { title: "Plastiques 2025", content: "Depuis 2023 en France, l'extension des consignes de tri (ECT) permet de mettre TOUS les emballages plastiques dans le bac jaune (pots de yaourt, barquettes, films plastiques)." },
-  { title: "Zéro Lavage", content: "Il est inutile de laver vos emballages ! Il suffit de bien les vider. L'eau utilisée pour le lavage est souvent plus précieuse que le bénéfice du recyclage d'un emballage souillé." },
-  { title: "Biodéchets", content: "Le tri des biodéchets est obligatoire pour tous depuis le 1er janvier 2024. Pensez au compostage de quartier ou aux bacs marrons." },
-  { title: "Métaux", content: "Même les petits métaux (capsules de café, opercules, papier alu) se recyclent dans le bac jaune grâce aux machines à induction des centres de tri." }
+  { title: "Standard 2026 : 100% Tri", content: "Dès 2026, l'Europe impose le tri systématique de tous les matériaux. En France, cela signifie qu'aucun emballage ne doit finir dans le bac gris." },
+  { title: "Bio-déchets obligatoires", content: "Depuis 2024 et renforcé en 2026, jeter des restes alimentaires dans le bac gris est interdit. Utilisez les solutions de compostage obligatoires de votre commune." },
+  { title: "Textiles & Chaussures", content: "Le tri des textiles devient universel. Même usés ou troués, ils doivent être placés en point d'apport pour être transformés en isolant ou nouveaux fils." },
+  { title: "Emballages Réemployables", content: "Privilégiez les produits avec le logo 'Consigne'. En 2026, de nombreux points de vente reprennent vos emballages vides pour lavage." }
 ];
