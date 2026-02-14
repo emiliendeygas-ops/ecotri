@@ -31,19 +31,22 @@ function MainApp() {
     const savedPoints = localStorage.getItem('snapsort_points');
     if (savedPoints) setEcoPoints(parseInt(savedPoints));
     
-    // Tentative de récupération silencieuse de la position au démarrage
+    // Tentative de localisation silencieuse
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         p => setLocation({ lat: p.coords.latitude, lng: p.coords.longitude }),
-        null, { timeout: 5000 }
+        null, { timeout: 10000 }
       );
     }
     getDailyEcoTip().then(setDailyTip);
   }, []);
 
+  // Forcer le scroll en haut quand un résultat arrive
   useEffect(() => {
     if (result) {
-      window.scrollTo({ top: 0, behavior: 'instant' as any });
+      window.scrollTo({ top: 0, behavior: 'instant' });
+      document.body.scrollTop = 0;
+      document.documentElement.scrollTop = 0;
     }
   }, [result]);
 
@@ -60,7 +63,6 @@ function MainApp() {
         const session = startEcoChat(res);
         setChatSession(session);
         
-        // Enrichissement asynchrone
         generateWasteImage(res.itemName).then(img => {
           if (img) setResult(prev => prev ? { ...prev, imageUrl: img } : null);
         });
@@ -83,37 +85,41 @@ function MainApp() {
     } catch (err: any) {
       setIsAnalyzing(false);
       console.error(err);
-      alert("Une erreur est survenue lors de l'analyse.");
+      alert("Erreur de connexion avec l'IA.");
     }
   };
 
-  const requestLocation = () => {
-    setIsLocating(true);
-    if (!navigator.geolocation) {
-      alert("La géolocalisation n'est pas supportée par votre navigateur.");
-      setIsLocating(false);
-      return;
-    }
-
-    navigator.geolocation.getCurrentPosition(
-      p => {
-        const newLoc = { lat: p.coords.latitude, lng: p.coords.longitude };
-        setLocation(newLoc);
-        setIsLocating(false);
-        // Si un résultat est déjà affiché, on lance la recherche de points immédiatement
-        if (result) {
-          findNearbyPoints(result.bin, result.itemName, newLoc.lat, newLoc.lng).then(pts => {
-            if (pts?.length) setResult(prev => prev ? { ...prev, nearbyPoints: pts } : null);
-          });
+  const startCamera = async () => {
+    try {
+      const constraints = {
+        video: { 
+          facingMode: 'environment',
+          width: { ideal: 1920 },
+          height: { ideal: 1080 }
         }
-      },
-      err => {
-        console.error(err);
-        setIsLocating(false);
-        alert("Accès à la position refusé. Vous pouvez chercher manuellement sur Google Maps.");
-      },
-      { enableHighAccuracy: true, timeout: 10000 }
-    );
+      };
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      setIsCameraActive(true);
+      
+      // Laisser le temps au DOM de monter le composant video
+      setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          videoRef.current.onloadedmetadata = () => {
+            videoRef.current?.play().catch(e => console.error("Auto-play failed:", e));
+          };
+        }
+      }, 300);
+    } catch (e) {
+      alert("Accès à la caméra refusé. Vérifiez vos paramètres système.");
+    }
+  };
+
+  const stopCamera = () => {
+    if (videoRef.current?.srcObject) {
+      (videoRef.current.srcObject as MediaStream).getTracks().forEach(t => t.stop());
+    }
+    setIsCameraActive(false);
   };
 
   const gradeInfo = useMemo(() => {
@@ -129,20 +135,6 @@ function MainApp() {
     let progress = nextGrade ? ((ecoPoints - currentGrade.min) / (nextGrade.min - currentGrade.min)) * 100 : 100;
     return { ...currentGrade, progress };
   }, [ecoPoints]);
-
-  const startCamera = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } } 
-      });
-      setIsCameraActive(true);
-      setTimeout(() => {
-        if (videoRef.current) videoRef.current.srcObject = stream;
-      }, 300);
-    } catch (e) {
-      alert("Accès caméra refusé.");
-    }
-  };
 
   return (
     <Layout 
@@ -169,11 +161,25 @@ function MainApp() {
               const response = await chatSession.sendMessage({ message: text });
               setChatMessages([...msgs, { role: 'model' as const, text: response.text || "" }]);
             } catch (e) {
-              setChatMessages([...msgs, { role: 'model' as const, text: "Erreur de connexion." }]);
+              setChatMessages([...msgs, { role: 'model' as const, text: "Désolé, réessayez plus tard." }]);
             }
             setIsChatting(false);
           }}
-          onRequestLocation={requestLocation}
+          onRequestLocation={() => {
+            setIsLocating(true);
+            navigator.geolocation.getCurrentPosition(
+              p => { 
+                const newLoc = { lat: p.coords.latitude, lng: p.coords.longitude };
+                setLocation(newLoc); 
+                setIsLocating(false);
+                if (result) findNearbyPoints(result.bin, result.itemName, newLoc.lat, newLoc.lng).then(pts => {
+                  if (pts?.length) setResult(prev => prev ? { ...prev, nearbyPoints: pts } : null);
+                });
+              },
+              () => { setIsLocating(false); alert("Position refusée."); },
+              { enableHighAccuracy: true, timeout: 10000 }
+            );
+          }}
           chatMessages={chatMessages}
           isChatting={isChatting}
         />
@@ -198,7 +204,7 @@ function MainApp() {
             />
             <div className="absolute right-2 top-2 bottom-2 flex gap-1.5">
               <button 
-                onClick={startCamera}
+                onClick={startCamera} 
                 className="w-12 h-12 bg-slate-50 text-slate-400 rounded-2xl flex items-center justify-center hover:bg-emerald-50 hover:text-emerald-600 transition-all border border-slate-100 active:scale-90"
               >
                 📸
@@ -244,10 +250,9 @@ function MainApp() {
             playsInline 
             muted 
             className="flex-1 object-cover"
-            onLoadedMetadata={() => videoRef.current?.play()}
           />
           <div className="p-10 flex justify-between items-center bg-gradient-to-t from-black/80 to-transparent absolute bottom-0 left-0 right-0">
-            <button onClick={() => setIsCameraActive(false)} className="text-white font-black text-[10px] uppercase tracking-widest px-6 py-4 rounded-2xl border border-white/20">Annuler</button>
+            <button onClick={stopCamera} className="text-white font-black text-[10px] uppercase tracking-widest px-6 py-4 rounded-2xl border border-white/20">Annuler</button>
             <button 
               onClick={() => {
                 const ctx = canvasRef.current?.getContext('2d');
@@ -256,7 +261,7 @@ function MainApp() {
                   canvasRef.current!.height = videoRef.current.videoHeight;
                   ctx.drawImage(videoRef.current, 0, 0);
                   const base = canvasRef.current!.toDataURL('image/jpeg', 0.85).split(',')[1];
-                  setIsCameraActive(false);
+                  stopCamera();
                   handleProcess({ data: base, mimeType: 'image/jpeg' });
                 }
               }} 
@@ -271,10 +276,10 @@ function MainApp() {
       )}
 
       {isAnalyzing && (
-        <div className="fixed inset-0 bg-white z-[250] flex flex-col items-center justify-center p-8 text-center animate-in fade-in zoom-in">
+        <div className="fixed inset-0 bg-white z-[250] flex flex-col items-center justify-center p-8 text-center animate-in fade-in zoom-in duration-300">
           <div className="w-24 h-24 bg-emerald-50 rounded-[2.5rem] flex items-center justify-center animate-bounce mb-8 border border-emerald-100 shadow-xl">♻️</div>
           <h2 className="text-3xl font-[950] text-slate-900 mb-2">Analyse IA 2026</h2>
-          <p className="text-slate-400 font-bold mb-8">Recherche du bac et points de collecte...</p>
+          <p className="text-slate-400 font-bold mb-8">Identification et recherche de points...</p>
           <div className="w-48 h-2 bg-slate-100 rounded-full overflow-hidden">
              <div className="h-full bg-emerald-500 rounded-full animate-[loading_1.5s_infinite]"></div>
           </div>
@@ -283,7 +288,7 @@ function MainApp() {
 
       {modalContent && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[300] flex items-center justify-center p-6" onClick={() => setModalContent(null)}>
-          <div className="bg-white rounded-[2.5rem] w-full max-w-sm p-8 max-h-[80vh] overflow-y-auto no-scrollbar" onClick={e => e.stopPropagation()}>
+          <div className="bg-white rounded-[2.5rem] w-full max-w-sm p-8 max-h-[80vh] overflow-y-auto no-scrollbar shadow-2xl" onClick={e => e.stopPropagation()}>
             <div dangerouslySetInnerHTML={{ __html: modalContent }} />
             <button onClick={() => setModalContent(null)} className="w-full mt-8 bg-slate-900 text-white py-4 rounded-2xl font-black text-sm uppercase tracking-widest">Fermer</button>
           </div>

@@ -23,18 +23,20 @@ export const ResultCard: React.FC<ResultCardProps> = ({
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    window.scrollTo(0, 0);
+    window.scrollTo({ top: 0, behavior: 'instant' as any });
   }, [result.itemName]);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatMessages, isChatting]);
 
-  const googleMapsUrl = `https://www.google.com/maps/search/collecte+tri+${encodeURIComponent(result.itemName)}+${result.bin.toLowerCase()}/@${userLocation?.lat},${userLocation?.lng},14z`;
+  const mapsQuery = encodeURIComponent(`point de collecte ${result.itemName} ${result.bin}`);
+  const googleMapsUrl = userLocation 
+    ? `https://www.google.com/maps/search/${mapsQuery}/@${userLocation.lat},${userLocation.lng},14z`
+    : `https://www.google.com/maps/search/${mapsQuery}`;
 
   return (
-    <div className="animate-in fade-in duration-500 pb-20">
-      {/* Header avec la couleur du bac */}
+    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 pb-24">
       <div className={`${binInfo.color} p-12 text-center relative overflow-hidden transition-colors`}>
         <div className="mb-6 flex justify-center relative z-10">
           {result.imageUrl ? (
@@ -49,13 +51,12 @@ export const ResultCard: React.FC<ResultCardProps> = ({
         </div>
         
         <h2 className={`text-4xl font-[900] capitalize mb-4 ${binInfo.text} drop-shadow-sm`}>{result.itemName}</h2>
-        <div className="inline-flex items-center gap-2 bg-white px-8 py-2.5 rounded-full shadow-lg border border-slate-100">
+        <div className="inline-flex items-center gap-2 bg-white px-8 py-2.5 rounded-full shadow-lg">
           <span className="font-black text-slate-900 text-[10px] uppercase tracking-widest">{binInfo.label}</span>
         </div>
       </div>
 
       <div className="bg-white -mt-8 rounded-t-[3rem] p-8 space-y-10 relative z-10 shadow-xl">
-        {/* Consigne principale */}
         <section className="space-y-3">
           <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
             <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span> Consigne 2026
@@ -63,7 +64,6 @@ export const ResultCard: React.FC<ResultCardProps> = ({
           <p className="text-slate-900 font-bold text-xl leading-snug">{result.explanation}</p>
         </section>
 
-        {/* Impact Écologique */}
         {result.impact && (
           <div className="grid grid-cols-3 gap-3">
             <div className="bg-emerald-50 p-5 rounded-3xl text-center border border-emerald-100">
@@ -81,15 +81,13 @@ export const ResultCard: React.FC<ResultCardProps> = ({
           </div>
         )}
 
-        {/* Section Où Jeter ? (Recherche de points) */}
-        <section className="space-y-6">
-          <div className="flex justify-between items-end">
-            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-              📍 Points de Collecte
-            </h3>
+        {/* SECTION RECHERCHE DE POINTS AMELIOREE */}
+        <section className="space-y-6 bg-slate-50 p-6 rounded-[2.5rem] border border-slate-100">
+          <div className="flex justify-between items-center px-2">
+            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">📍 Recherche de points</h3>
             {userLocation && (
-               <a href={googleMapsUrl} target="_blank" rel="noopener noreferrer" className="text-[9px] font-black text-emerald-600 uppercase border-b border-emerald-200 pb-0.5">
-                  Ouvrir Google Maps
+               <a href={googleMapsUrl} target="_blank" rel="noopener noreferrer" className="text-[10px] font-black text-emerald-600 uppercase border-b border-emerald-200">
+                  Maps ↗
                </a>
             )}
           </div>
@@ -98,88 +96,69 @@ export const ResultCard: React.FC<ResultCardProps> = ({
             <button 
               onClick={onRequestLocation} 
               disabled={isLocating}
-              className="w-full bg-emerald-50 text-emerald-700 p-8 rounded-[2.5rem] border-2 border-dashed border-emerald-200 flex flex-col items-center gap-3 transition-all active:scale-95"
+              className="w-full bg-emerald-600 text-white p-8 rounded-[2.5rem] shadow-lg shadow-emerald-200 flex flex-col items-center gap-3 active:scale-95 transition-all"
             >
               <span className="text-3xl">🔍</span>
               <div className="text-center">
-                <span className="block font-black text-sm uppercase tracking-wider">{isLocating ? "Localisation..." : "Trouver un point proche"}</span>
-                <span className="text-[10px] font-bold opacity-70">Rechercher les déchetteries et bornes</span>
+                <span className="block font-black text-xs uppercase tracking-widest">{isLocating ? "Localisation..." : "Chercher autour de moi"}</span>
+                <span className="text-[10px] font-bold opacity-80">Trouver déchetteries et bornes de tri</span>
               </div>
             </button>
           ) : (
             <div className="space-y-4">
               <MapView points={result.nearbyPoints || []} userLocation={userLocation} />
               
-              {result.nearbyPoints && result.nearbyPoints.length > 0 ? (
-                <div className="grid gap-3">
-                  {result.nearbyPoints.map((point, idx) => (
-                    <a 
-                      key={idx} 
-                      href={point.uri} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="flex items-center justify-between p-4 bg-slate-50 border border-slate-100 rounded-2xl hover:bg-white hover:shadow-md transition-all group"
-                    >
+              <div className="grid gap-3">
+                {result.nearbyPoints && result.nearbyPoints.length > 0 ? (
+                  result.nearbyPoints.map((p, i) => (
+                    <a key={i} href={p.uri} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between p-5 bg-white rounded-2xl border border-slate-100 shadow-sm hover:border-emerald-300 group">
                       <div className="flex flex-col gap-1">
-                        <span className="text-xs font-black text-slate-800 line-clamp-1">{point.name}</span>
-                        <span className="text-[9px] font-bold text-slate-400 uppercase">Site Web / Itinéraire</span>
+                        <span className="text-xs font-black text-slate-800 line-clamp-1 group-hover:text-emerald-700">{p.name}</span>
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Site Web / Itinéraire</span>
                       </div>
-                      <span className="text-emerald-500 group-hover:translate-x-1 transition-transform">➡️</span>
+                      <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-500">→</div>
                     </a>
-                  ))}
-                </div>
-              ) : (
-                <div className="p-6 bg-slate-50 rounded-2xl text-center border border-slate-100">
-                  <p className="text-xs font-bold text-slate-500">Aucun point spécifique trouvé par l'IA. Essayez Google Maps.</p>
-                </div>
-              )}
+                  ))
+                ) : (
+                  <div className="p-6 text-center bg-white rounded-2xl border border-dashed border-slate-200">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Aucun point spécifique trouvé par l'IA</p>
+                    <a href={googleMapsUrl} target="_blank" rel="noopener noreferrer" className="inline-block mt-3 text-emerald-600 font-black text-xs uppercase underline">Essayer Google Maps</a>
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </section>
 
-        {/* EcoCoach IA */}
-        <section className="bg-slate-900 p-7 rounded-[2.5rem] border border-slate-800 space-y-5 shadow-2xl">
-          <h3 className="text-[10px] font-black text-emerald-400 uppercase tracking-widest flex items-center gap-2">💬 EcoCoach Pro 2026</h3>
-          
-          <div className="max-h-60 overflow-y-auto space-y-4 no-scrollbar pr-1">
-            <div className="flex justify-start">
-               <div className="max-w-[90%] p-4 rounded-2xl text-xs font-bold bg-white/10 text-emerald-50 border border-white/10">
-                  Besoin d'aide pour réduire ce déchet ? Posez-moi vos questions !
-               </div>
-            </div>
+        <section className="bg-slate-900 p-7 rounded-[2.5rem] border border-slate-800 space-y-5">
+          <h3 className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">💬 EcoCoach Pro</h3>
+          <div className="max-h-48 overflow-y-auto space-y-4 no-scrollbar pr-1">
             {chatMessages.map((msg, i) => (
               <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[90%] p-4 rounded-2xl text-xs font-bold shadow-sm ${msg.role === 'user' ? 'bg-emerald-600 text-white' : 'bg-white/10 text-emerald-50 border border-white/10'}`}>
+                <div className={`max-w-[85%] p-4 rounded-2xl text-xs font-bold ${msg.role === 'user' ? 'bg-emerald-600 text-white' : 'bg-white/10 text-emerald-50 border border-white/5'}`}>
                   {msg.text}
                 </div>
               </div>
             ))}
             <div ref={chatEndRef} />
           </div>
-          
           <form onSubmit={(e) => { e.preventDefault(); if(chatInput.trim()){ onAskQuestion(chatInput); setChatInput(''); } }} className="relative">
             <input 
               type="text" 
               value={chatInput} 
               onChange={e => setChatInput(e.target.value)} 
               placeholder="Question sur le tri ?" 
-              className="w-full bg-white/10 border border-white/20 rounded-2xl py-5 pl-6 pr-20 text-sm font-bold text-white outline-none focus:border-emerald-500 transition-colors" 
+              className="w-full bg-white/5 border border-white/10 rounded-2xl py-5 pl-6 pr-20 text-xs font-bold text-white outline-none focus:border-emerald-500" 
             />
-            <button type="submit" className="absolute right-2 top-2 bottom-2 bg-emerald-500 text-slate-900 px-5 rounded-xl text-[10px] font-black uppercase tracking-widest active:scale-95 transition-transform">Envoyer</button>
+            <button type="submit" className="absolute right-2 top-2 bottom-2 bg-emerald-500 text-slate-900 px-6 rounded-xl text-[9px] font-black uppercase">OK</button>
           </form>
         </section>
 
         <AdBanner />
 
-        <div className="flex flex-col gap-3">
-          <button 
-            onClick={onReset} 
-            className="w-full bg-slate-100 text-slate-900 py-6 rounded-[2.5rem] font-black text-lg hover:bg-slate-200 transition-all active:scale-95 shadow-sm"
-          >
-            Nouveau Scan
-          </button>
-          <p className="text-center text-[9px] font-black text-slate-300 uppercase tracking-widest">SnapSort Intelligence • v2026.1</p>
-        </div>
+        <button onClick={onReset} className="w-full bg-slate-900 text-white py-6 rounded-[2.5rem] font-black text-lg shadow-xl active:scale-95 transition-transform">
+          Nouveau Scan
+        </button>
       </div>
     </div>
   );
